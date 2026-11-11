@@ -52,8 +52,19 @@ const longDate = s=>new Date(s).toLocaleDateString('en-US',{weekday:'short',mont
 const closesAt = sh=>new Date(new Date(sh.date)-CONFIG.voteClosesHoursBefore*3600e3);
 const STATES = {AZ:'Arizona',CO:'Colorado',TX:'Texas',DC:'Washington DC',GA:'Georgia'};
 
+/* ---------- smooth scroll (Lenis) + ScrollTrigger ---------- */
+let lenis=null;
+if(window.gsap&&window.ScrollTrigger){ gsap.registerPlugin(ScrollTrigger) }
+if(window.Lenis&&window.gsap&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+  lenis=new Lenis({lerp:.1,smoothWheel:true});
+  lenis.on('scroll',()=>window.ScrollTrigger&&ScrollTrigger.update());
+  gsap.ticker.add(t=>lenis.raf(t*1000)); gsap.ticker.lagSmoothing(0);
+}
+const scrollToEl=(el,off=-70)=>{ if(!el) return; lenis?lenis.scrollTo(el,{offset:off,duration:1.2}):el.scrollIntoView({behavior:'smooth'}) };
+const scrollTop=()=>{ lenis?lenis.scrollTo(0,{immediate:true}):window.scrollTo(0,0) };
+
 /* ---------- router ---------- */
-let first = true;
+let first = true, skipCurtain = false;
 function route(){
   const h = location.hash.replace(/^#\/?/,'');
   const [a,b0] = h.split('/'); const b=(b0||'').split('#')[0];
@@ -67,10 +78,43 @@ function route(){
   else if(a==='music') music();
   else if(a==='admin') admin();
   else hub();
-  if(!location.hash.includes('#cmerch')) window.scrollTo(0,0);
-  first = false;
+  if(!location.hash.includes('#cmerch')) scrollTop();
+  if(!first && !skipCurtain) curtain();
+  skipCurtain=false; first = false;
+  requestAnimationFrame(()=>{ scrollFx(); window.ScrollTrigger&&ScrollTrigger.refresh() });
 }
 addEventListener('hashchange',route);
+
+/* red curtain lifts off each new page (tab/link navigation) */
+function curtain(){
+  if(!window.gsap||reduce) return;
+  const c=$('.curtain'); gsap.killTweensOf(c);
+  gsap.timeline().set(c,{display:'block',yPercent:0})
+    .fromTo(c,{clipPath:'inset(0 0 0 0)'},{clipPath:'inset(0 0 100% 0)',duration:.7,ease:'power4.inOut'})
+    .set(c,{display:'none'});
+  gsap.from('#app',{y:40,duration:.8,ease:'power3.out',clearProps:'transform'});
+}
+
+/* scroll-driven motion + section pager, rebuilt per page */
+function scrollFx(){
+  if(!window.ScrollTrigger||reduce) return;
+  // top progress bar
+  gsap.fromTo('.progress',{scaleX:0},{scaleX:1,ease:'none',scrollTrigger:{start:0,end:'max',scrub:.3}});
+  // headings rise in, letters stagger
+  $$('#app h2.disp').forEach(h=>{ gsap.from(h,{yPercent:40,opacity:0,duration:.9,ease:'power4.out',scrollTrigger:{trigger:h,start:'top 88%'}}) });
+  ScrollTrigger.batch('#app .panel, #app .night, #app .prod',{start:'top 92%',onEnter:b=>gsap.from(b,{opacity:0,y:36,stagger:.07,duration:.7,ease:'power3.out'})});
+  // big poster drifts as you scroll away
+  const hs=$('.herostage'); if(hs) gsap.to(hs,{yPercent:18,scale:.92,opacity:.35,ease:'none',scrollTrigger:{trigger:'.chapter',start:'top top',end:'bottom top',scrub:true}});
+  // dates: page takeover. The landing holds still and the dates page slides up over it
+  const land=$('.landing'), dsec=$('#dates');
+  if(land&&dsec){
+    ScrollTrigger.create({trigger:land,start:'top top',end:'bottom top',pin:true,pinSpacing:false});
+    gsap.to(land,{scale:.9,opacity:.3,filter:'blur(4px)',ease:'none',scrollTrigger:{trigger:dsec,start:'top bottom',end:'top top',scrub:true}});
+    gsap.fromTo(dsec,{borderRadius:'28px 28px 0 0'},{borderRadius:'0px 0px 0 0',ease:'none',scrollTrigger:{trigger:dsec,start:'top 60%',end:'top top',scrub:true}});
+  }
+
+
+}
 
 function closeSheet(){ $('.sheet').classList.remove('open'); $('.scrim').classList.remove('on') }
 $('.scrim').onclick = closeSheet;
@@ -104,7 +148,7 @@ const credit = slug=>{ const c=CREDITS[slug]; return c?`<a class="credit" href="
 
 /* ---------- motion: layered artwork that follows pointer / tilt ---------- */
 let motionOff = [];
-function killMotion(){ motionOff.forEach(f=>f()); motionOff=[] }
+function killMotion(){ motionOff.forEach(f=>{try{f()}catch(e){}}); motionOff=[]; if(window.ScrollTrigger){ ScrollTrigger.getAll().forEach(t=>t.kill()); gsap.set('.ph-grid',{clearProps:'transform'}) } }
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 function stageHtml(extra=''){
   return `<div class="stage" aria-hidden="false">
@@ -172,6 +216,7 @@ function hub(){
     b.onpointerleave=()=>{ stage.classList.remove('aim'); b.classList.remove('hot') };
   });
   app.querySelectorAll('.spot,.chip').forEach(b=>b.onclick=e=>pickState(b.dataset.st,e));
+  const cue=$('.scrollcue'); if(cue) cue.onclick=e=>{ e.preventDefault(); scrollToEl($('#dates'),-64) };
   bindRequest();
   if(window.gsap){
     const tl=gsap.timeline();
@@ -194,16 +239,16 @@ const mapImg = new Image(); mapImg.src = 'img/us-map.jpg';
 function pickState(st,e){
   const list=SHOWS.filter(s=>s.st===st);
   const dest = list.length>1 ? '#/state/'+st.toLowerCase() : '#/show/'+list[0].slug;
-  if(!window.gsap||reduce||!US){ location.hash=dest; return }
+  if(CIRCLES||!window.gsap||reduce||!US){ location.hash=dest; return }
   const spot=$(`.spot[data-st="${st}"]`); const r=(spot||e.currentTarget).getBoundingClientRect();
   const cx=r.left+r.width/2, cy=r.top+r.height/2;
   const label = list.length>1?STATES[st]:list[0].city;
   const w=document.createElement('div'); w.className='wipe';
-  w.innerHTML=`<div class="cam" style="width:${US.w}px;height:${US.h}px">
+  w.innerHTML=`<div class="tilt"><div class="cam" style="width:${US.w}px;height:${US.h}px">
       <img src="img/us-map.jpg" alt="">
       <svg viewBox="0 0 ${US.w} ${US.h}" class="borders">${Object.entries(US.states).map(([k,d])=>`<path class="${k===st?'on':''}" d="${d}"/>`).join('')}
         ${list.map(s=>`<circle class="cpin" cx="${US.cities[s.slug][0]}" cy="${US.cities[s.slug][1]}" r="9"/>`).join('')}</svg>
-    </div>
+    </div></div>
     <div class="maplabel disp">${STATES[st]}</div>
 `;
   w.style.setProperty('--cx',cx+'px'); w.style.setProperty('--cy',cy+'px');
@@ -211,7 +256,7 @@ function pickState(st,e){
   // camera: fit whole US, then fit the state's box
   const cam=$('.cam',w), path=$('.borders .on',w), bb=path.getBBox(), W=innerWidth, H=innerHeight;
   const fit=(x,y,bw,bh,pad)=>{ const sc=Math.min(W/(bw*pad),H/(bh*pad)); return {s:sc,x:W/2-(x+bw/2)*sc,y:H/2-(y+bh/2)*sc} };
-  const us=fit(0,US.h*.05,US.w,US.h*.85,1.02), zs=fit(bb.x,bb.y,bb.width,bb.height,st==='DC'?14:1.7);
+  const us=(()=>{ const f=fit(0,US.h*.05,US.w,US.h*.85,1.02), cs=Math.max(W/US.w,H/(US.h*.85))*1.15; if(cs<=f.s*1.05) return f; return {s:cs,x:W/2-(bb.x+bb.width/2)*cs*.4-(US.w/2)*cs*.6,y:H/2-(US.h*.5)*cs} })(), zs=fit(bb.x,bb.y,bb.width,bb.height,st==='DC'?14:1.7);
   const v={...us}; const apply=()=>cam.style.transform=`translate(${v.x}px,${v.y}px) scale(${v.s})`; apply();
   const len=path.getTotalLength(); path.style.strokeDasharray=len; path.style.strokeDashoffset=len;
   const lab=$('.maplabel',w);
@@ -227,11 +272,12 @@ function pickState(st,e){
   if(spot){ spot.classList.add('hot'); tl.to(spot,{scale:1.5,duration:.15,ease:'power2.out'},0) }
   tl.fromTo(w,{'--r':'20px'},{'--r':Math.hypot(W,H)+'px',duration:.3,ease:'power2.in'},0)
     .to(p,{t:1,duration:1.25,ease:'power1.in',onUpdate:zoom},.12)
+    .fromTo($('.tilt',w),{rotateX:28,rotateZ:-3},{rotateX:48,rotateZ:0,duration:1.25,ease:'power1.in'},.12)
     .to(path,{strokeDashoffset:0,duration:.45,ease:'power2.out'},.2)
     .fromTo(lab,{opacity:0,scale:.8,rotate:-12},{opacity:1,scale:1,rotate:-8,duration:.3,ease:'back.out(2)'},.35)
     .from($$('.cpin',w),{scale:0,transformOrigin:'50% 50%',stagger:.05,duration:.22,ease:'back.out(3)'},.55)
     .to(lab,{opacity:0,scale:1.8,duration:.35,ease:'power2.in'},.85)
-    .call(()=>{ location.hash=dest },null,1.3)
+    .call(()=>{ skipCurtain=true; location.hash=dest },null,1.3)
     .to(w,{opacity:0,duration:.3,ease:'power1.out',onComplete:()=>w.remove()},1.34)
     .call(()=>gsap.fromTo('#app',{scale:1.15,filter:'blur(5px)'},{scale:1,filter:'blur(0px)',duration:.5,ease:'power3.out',clearProps:'transform,filter',transformOrigin:'50% 30%'}),null,1.32);
 }
@@ -315,7 +361,7 @@ function city(s){
       <p class="body" style="font-size:11px;color:var(--dim);margin-top:14px">${esc(CONFIG.giveaway.legal)}</p></div></section>`:''}
     <p class="tag" style="text-align:center;margin:10px 0 0">Preview phase: ${['before','live','after'].map(p=>`<a href="?phase=${p}${location.hash}" class="${ph===p?'red':''}" style="margin:0 6px">${p}</a>`).join('')}</p>
   </div>`;
-  app.querySelectorAll('[data-jump]').forEach(a=>a.onclick=e=>{ e.preventDefault(); document.getElementById(a.dataset.jump)?.scrollIntoView({behavior:'smooth'}) });
+  app.querySelectorAll('[data-jump]').forEach(a=>a.onclick=e=>{ e.preventDefault(); scrollToEl(document.getElementById(a.dataset.jump)) });
   tilt('.tile'); cityMotion();
   countdown($('.cd'));
   if(sections.tix && ph!=='after') loadSeated();
@@ -324,9 +370,8 @@ function city(s){
     gsap.from('.mega .ch',{yPercent:110,opacity:0,rotate:6,stagger:.05,duration:.8,ease:'power4.out'});
     gsap.from('.city-chap .meta,.city-chap .cd,.city-chap .livebar',{opacity:0,y:16,duration:.6,delay:.3,stagger:.1});
     gsap.from('.tile',{opacity:0,y:40,rotateX:-30,stagger:.08,duration:.7,delay:.45,ease:'power3.out'});
-    reveal();
   }
-  if(location.hash.includes('#cmerch')) setTimeout(()=>$('#cmerch')?.scrollIntoView(),300);
+  if(location.hash.includes('#cmerch')) setTimeout(()=>scrollToEl($('#cmerch')),400);
 }
 function cityMotion(){
   if(!window.gsap||reduce) return;
@@ -539,3 +584,6 @@ function admin(){
 }
 
 fetch('img/us-states.json').then(r=>r.json()).then(j=>US=j).catch(()=>{}).finally(route);
+
+// late content (Seated widget, embeds, fonts) changes page height: re-measure scroll positions
+if(window.ResizeObserver&&window.ScrollTrigger){ let rt; new ResizeObserver(()=>{ clearTimeout(rt); rt=setTimeout(()=>ScrollTrigger.refresh(),200) }).observe(document.getElementById('app')) }
