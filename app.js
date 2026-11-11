@@ -245,7 +245,7 @@ function pickState(st,e){
   const label = list.length>1?STATES[st]:list[0].city;
   const w=document.createElement('div'); w.className='wipe';
   w.innerHTML=`<div class="tilt"><div class="cam" style="width:${US.w}px;height:${US.h}px">
-      <img src="img/us-map.jpg" alt="">
+      <img src="img/us-map.jpg" alt="">${(c=>c?`<img class="hi" src="img/cmap/st-${st}.jpg" alt="" style="left:${c[0]}px;top:${c[1]}px;width:${c[2]}px;height:${c[3]}px">`:'')(US.crops&&US.crops['st-'+st])}
       <svg viewBox="0 0 ${US.w} ${US.h}" class="borders">${Object.entries(US.states).map(([k,d])=>`<path class="${k===st?'on':''}" d="${d}"/>`).join('')}
         ${list.map(s=>`<circle class="cpin" cx="${US.cities[s.slug][0]}" cy="${US.cities[s.slug][1]}" r="9"/>`).join('')}</svg>
     </div></div>
@@ -262,7 +262,7 @@ function pickState(st,e){
   const lab=$('.maplabel',w);
   // one fast move: US -> state glows -> dive into the city pin -> page is already there, settling in
   const tgt=list.map(x=>US.cities[x.slug]); const tx=tgt.reduce((a,p)=>a+p[0],0)/tgt.length, ty=tgt.reduce((a,p)=>a+p[1],0)/tgt.length;
-  const dive={s:zs.s*7,x:W/2-tx*zs.s*7,y:H/2-ty*zs.s*7};
+  const dive={s:zs.s*4,x:W/2-tx*zs.s*4,y:H/2-ty*zs.s*4};
   const fx0=(-us.x+W/2)/us.s, fy0=(-us.y+H/2)/us.s;           // map point at screen centre, US view
   const p={t:0}, ls0=Math.log(us.s), ls1=Math.log(dive.s);
   const zoom=()=>{ const t=p.t, c=gsap.parseEase('power3.out')(Math.min(1,t*1.5));
@@ -343,7 +343,7 @@ function city(s){
     <div class="wrap chap-in">
       <a class="back" href="${s.st==='TX'?'#/state/tx':'#/'}">← ${s.st==='TX'?'Texas':'All states'}</a>
       <p class="kick"><span class="pdot ${ph}"></span>${phaseLabel(s)} · ${longDate(s.date)}</p>
-      <div class="herostage">${stageHtml()}<div class="minimap">${mapCircle(s.st,s.slug,s.slug)}</div></div>
+      <div class="herostage">${stageHtml()}<div class="minimap">${mapCircle(s.st,s.slug)}</div></div>
       <h1 class="disp mega">${splitChars(s.city)}</h1>
       <p class="meta">${esc(s.venue)} · ${s.city}, ${s.st}</p>
       <div class="cdrow"><div style="flex:1">
@@ -583,7 +583,7 @@ function admin(){
   $('#er').onclick=()=>dl('big5-city-requests.csv',csv(r));
 }
 
-fetch('img/us-states.json').then(r=>r.json()).then(j=>US=j).catch(()=>{}).finally(route);
+fetch('img/us-states.json').then(r=>r.json()).then(j=>{ US=j; setTimeout(()=>['AZ','CO','TX','GA','DC'].forEach(k=>{ const i=new Image(); i.src='img/cmap/st-'+k+'.jpg' }),1500) }).catch(()=>{}).finally(route);
 
 // late content (Seated widget, embeds, fonts) changes page height: re-measure scroll positions
 if(window.ResizeObserver&&window.ScrollTrigger){ let rt; new ResizeObserver(()=>{ clearTimeout(rt); rt=setTimeout(()=>ScrollTrigger.refresh(),200) }).observe(document.getElementById('app')) }

@@ -341,3 +341,8 @@ h2.disp + p,h2.disp + .body,h2.disp + .form,h2.disp + .kick{margin-top:16px}
 /* poster art never blocks taps; back links sit on top */
 .herostage,.herostage .stage{pointer-events:none}
 .back{position:relative;z-index:20;display:inline-block;padding:8px 10px 8px 0}
+
+/* crisp zoom: let the browser re-render the map at each scale instead of stretching a bitmap */
+.cam{will-change:auto!important}
+.tilt{transform-style:flat}
+.cam img.hi{position:absolute;max-width:none;inset:auto}
