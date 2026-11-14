@@ -390,3 +390,6 @@ h2.disp + p,h2.disp + .body,h2.disp + .form,h2.disp + .kick{margin-top:16px}
 
 /* the front image is drawn mirrored so it reads correctly once the card has turned 180° */
 .tee.mock .tee-face.front img{transform:scaleX(-1) scale(1.14)}
+
+.tee-card{cursor:pointer}
+.tee-card:hover{border-color:var(--red)}

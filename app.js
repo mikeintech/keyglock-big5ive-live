@@ -48,7 +48,8 @@ function bindTees(root=document){
     t.addEventListener('pointerdown',e=>{ ptype=e.pointerType });
     t.addEventListener('pointerenter',e=>{ if(e.pointerType==='mouse') go(180) });
     t.addEventListener('pointerleave',e=>{ if(e.pointerType==='mouse') go(0) });
-    t.addEventListener('click',()=>{ if(ptype!=='mouse') t.flip() });
+    const link=t.closest('.tee-card')?.querySelector('a');
+    t.addEventListener('click',()=>{ if(link){ location.hash=link.getAttribute('href'); return } if(ptype!=='mouse') t.flip() });
   });
 }
 
@@ -401,7 +402,7 @@ function city(s){
     gsap.from('.city-chap .meta,.city-chap .cd,.city-chap .livebar',{opacity:0,y:16,duration:.6,delay:.3,stagger:.1});
     gsap.from('.tile',{opacity:0,y:40,rotateX:-30,stagger:.08,duration:.7,delay:.45,ease:'power3.out'});
   }
-  if(location.hash.includes('#cmerch')) setTimeout(()=>scrollToEl($('#cmerch')),400);
+  if(location.hash.includes('#cmerch')){ const jump=()=>{ const el=$('#cmerch'); if(!el) return; const y=el.getBoundingClientRect().top+scrollY-70; lenis?lenis.scrollTo(y,{immediate:true,force:true}):scrollTo(0,y) }; let user=false; const stop=()=>user=true; addEventListener('wheel',stop,{once:true,passive:true}); addEventListener('touchstart',stop,{once:true,passive:true}); [80,500,1200,2200,3500].forEach(t=>setTimeout(()=>{ if(!user&&location.hash.includes('#cmerch')) jump() },t)) };
 }
 function cityMotion(){
   if(!window.gsap||reduce) return;
@@ -597,7 +598,7 @@ function dist(a,b,c,d){ const R=6371e3,r=Math.PI/180,x=Math.sin((c-a)*r/2)**2+Ma
 /* ---------- tabs ---------- */
 function merchPage(){
   app.innerHTML = `<div class="city-hero"><div class="wrap"><p class="kick">BIG 5IVE LIVE</p><h1 class="disp">Merch</h1>
-    <p class="body" style="color:var(--dim);margin-top:10px">Exclusively in venue. Every city gets its own tee, sold only in the building on show night. Tap a tee to flip it.</p></div></div>
+    <p class="body" style="color:var(--dim);margin-top:10px">Exclusively in venue. Every city gets its own tee, sold only in the building on show night. Tap a tee to see that city's drop.</p></div></div>
   <div class="wrap"><div class="tee-grid">${SHOWS.map(s=>`<div class="tee-card">${teeHtml(s.slug)}<a href="#/show/${s.slug}#cmerch"><span class="d">${mmdd(s.date)}</span><b class="disp">${s.city}</b><small>${esc(s.venue)} · Locked</small></a></div>`).join('')}</div></div>`;
   bindTees(app);
 }
