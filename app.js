@@ -373,7 +373,7 @@ function city(s){
   <section class="chapter city-chap">
     <div class="wrap chap-in">
       <a class="back" href="${s.st==='TX'?'#/state/tx':'#/'}">← ${s.st==='TX'?'Texas':'All states'}</a>
-      <p class="kick"><span class="pdot ${ph}"></span>${phaseLabel(s)} · ${longDate(s.date)}</p>
+      <p class="kick">Live • ${longDate(s.date)}</p>
       <div class="herostage">${stageHtml()}<div class="minimap">${mapCircle(s.st,s.slug)}</div></div>
       <h1 class="disp mega">${splitChars(s.city)}</h1>
       <p class="meta">${esc(s.venue)} · ${cityLine(s)}</p>
@@ -440,12 +440,12 @@ function voteBlock(s){
   const closed = Date.now()>closesAt(s) || phase(s)!=='before';
   const mine = voted(s.slug);
   return `<p class="kick">Select your set list</p><h2 class="disp">Build your <span class="red">5</span></h2>
-  <p class="body" style="color:var(--dim);margin-top:10px">Pick five tracks for a chance to hear your dream setlist performed live during a special segment of <b style="color:var(--ink)">Big 5ive Live</b>. Your 5th pick is the <b style="color:var(--ink)">Fan-Picked Finale</b>.</p>
+  <p class="body" style="color:var(--dim);margin-top:10px">Pick five tracks for a chance to hear your dream setlist performed live during a special segment of <b style="color:var(--ink)">Big 5ive Live</b>.</p>
   <p class="tag" style="margin-top:8px">${closed?'Voting closed':'Voting closes '+closesAt(s).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</p>
   <div class="panel record" id="vbox">${closed||mine?resultsHtml(s,mine):pickerHtml()}</div>`;
 }
 function pickerHtml(){
-  return `<div class="slots">${[0,1,2,3,4].map(i=>`<button class="slot${i===4?' fin':''}" data-i="${i}" aria-label="${i===4?'Finale slot':'Track '+(i+1)}"><span class="sn">${i===4?ICON.crown:'0'+(i+1)}</span><span class="st">${i===4?'Fan-picked finale':'Track 0'+(i+1)}</span></button>`).join('')}</div>
+  return `<div class="slots">${[0,1,2,3,4].map(i=>`<button class="slot" data-i="${i}" aria-label="Track ${i+1}"><span class="sn">0${i+1}</span><span class="st">Track 0${i+1}</span></button>`).join('')}</div>
   <p class="tag" id="pc" style="margin:16px 0 8px">Tap a song to drop it on Track 01</p>
   <div class="crate">${CONFIG.songs.map(t=>`<button class="song" data-t="${esc(t)}"><span class="play">▶</span><span>${esc(t)}</span><span class="plus">+</span></button>`).join('')}</div>
   <div class="picks-bar"><span class="tag" id="cnt">0/5</span><button class="btn" id="vsub" disabled>Lock in my 5</button></div>`;
@@ -454,9 +454,9 @@ function bindVote(s){
   const box = $('#vbox'); if(!box) return; let picks=[];
   const paint = ()=>{
     box.querySelectorAll('.slot').forEach((sl,i)=>{ sl.classList.toggle('full',!!picks[i]);
-      $('.st',sl).textContent = picks[i] || (i===4?'Fan-picked finale':'Track 0'+(i+1)); sl.classList.toggle('next',i===picks.length) });
+      $('.st',sl).textContent = picks[i] || ('Track 0'+(i+1)); sl.classList.toggle('next',i===picks.length) });
     box.querySelectorAll('.song').forEach(b=>{ const on=picks.includes(b.dataset.t); b.classList.toggle('on',on); b.disabled=!on&&picks.length>=5; $('.plus',b).textContent=on?'✓':'+' });
-    const pc=$('#pc'); if(pc) pc.textContent = picks.length>=5?'Your 5 is set. Tap a track to swap it out.':picks.length===4?'Now pick your finale, the closing song':`Tap a song to drop it on Track 0${picks.length+1}`;
+    const pc=$('#pc'); if(pc) pc.textContent = picks.length>=5?'Your 5 is set. Tap a track to swap it out.':`Tap a song to drop it on Track 0${picks.length+1}`;
     $('#cnt').textContent=picks.length+'/5'; $('#vsub').disabled=picks.length<1;
   };
   box.onclick = e=>{
@@ -471,7 +471,7 @@ function bindVote(s){
     if(sl && picks[+sl.dataset.i]){ picks.splice(+sl.dataset.i,1); paint() }
     if(e.target.closest('#vsub')){
       if(Date.now()>closesAt(s)) return;
-      const row = DB.add('votes',{ts:new Date().toISOString(),city:s.slug,device:deviceId(),picks:picks.slice(0,4),finale:picks.length===5?picks[4]:''});
+      const row = DB.add('votes',{ts:new Date().toISOString(),city:s.slug,device:deviceId(),picks:picks.slice(0,5),finale:''});
       box.innerHTML = resultsHtml(s,row,true);
       if(window.gsap){ gsap.from('.locked',{scale:1.3,opacity:0,rotate:-4,duration:.5,ease:'back.out(2)'}); gsap.from('.locked li',{x:-30,opacity:0,stagger:.08,delay:.2}) }
     }
@@ -497,10 +497,10 @@ function resultsHtml(s,mine,fresh){
   const top = Object.entries(t).sort((a,b)=>b[1]-a[1]).slice(0,8);
   const fin = Object.entries(f).sort((a,b)=>b[1]-a[1])[0];
   return `${mine?`<div class="locked"><span class="stamp">✓</span><h3 class="disp">${fresh?'Your 5 is locked in':'Your 5'}</h3><p class="tag">${s.city}</p>
-    <ol>${mine.picks.map((p,i)=>`<li><b>0${i+1}</b>${esc(p)}</li>`).join('')}${mine.finale?`<li class="fin"><b>05</b>${esc(mine.finale)} <small>Fan-picked finale</small></li>`:''}</ol>
+    <ol>${mine.picks.map((p,i)=>`<li><b>0${i+1}</b>${esc(p)}</li>`).join('')}${mine.finale?`<li><b>05</b>${esc(mine.finale)}</li>`:''}</ol>
     <button class="btn" id="shr" style="width:100%;margin-top:14px">Share your set list ↗</button></div>`:''}
     ${show?`<p class="tag" style="margin-top:18px">${closed?'Final':'Live'} results · ${s.city}</p>${top.length?top.map(([n,c])=>`<div class="bar"><span>${esc(n)}</span><span class="red">${Math.round(c/tot*100)}%</span><span class="t"><i style="width:${c/tot*100}%"></i></span></div>`).join(''):'<p class="body" style="color:var(--dim)">No votes yet.</p>'}
-    ${fin?`<p class="body" style="margin-top:14px">Leading finale: <b class="red">${esc(fin[0])}</b></p>`:''}`:''}`;
+    `:''}`;
 }
 let handImg;
 function shareImage(s,v){
@@ -511,9 +511,9 @@ function shareImage(s,v){
     const g=x.createLinearGradient(0,500,0,1100); g.addColorStop(0,'#0000'); g.addColorStop(1,'#000'); x.fillStyle=g; x.fillRect(0,500,1080,1420);
     x.textAlign='center'; x.fillStyle='#e3202a'; x.font='54px Bebas'; x.fillText('MY BIG 5 · '+s.city.toUpperCase(),540,980);
     x.fillStyle='#f3f0ea'; x.font='150px Compacta'; x.fillText('BIG 5IVE LIVE',540,1130);
-    const list=[...v.picks.map((p,i)=>[String(i+1),p]),...(v.finale?[['F',v.finale]]:[])];
-    list.forEach(([n,p],i)=>{const y=1280+i*112; x.fillStyle=n==='F'?'#fff':'#e3202a'; x.beginPath(); x.arc(200,y-22,38,0,7); x.fill();
-      x.fillStyle=n==='F'?'#000':'#fff'; x.font='50px Bebas'; x.fillText(n,200,y-4); x.textAlign='left'; x.fillStyle='#f3f0ea'; x.font='72px Bebas'; x.fillText(p.toUpperCase(),270,y); x.textAlign='center'});
+    const list=[...v.picks,...(v.finale?[v.finale]:[])].slice(0,5).map((p,i)=>[String(i+1),p]);
+    list.forEach(([n,p],i)=>{const y=1280+i*112; x.fillStyle='#e3202a'; x.beginPath(); x.arc(200,y-22,38,0,7); x.fill();
+      x.fillStyle='#fff'; x.font='50px Bebas'; x.fillText(n,200,y-4); x.textAlign='left'; x.fillStyle='#f3f0ea'; x.font='72px Bebas'; x.fillText(p.toUpperCase(),270,y); x.textAlign='center'});
     x.fillStyle='#f3f0ea99'; x.font='40px Bebas'; x.fillText(`${mmdd(s.date)} · ${s.venue.toUpperCase()}`,540,1860);
     c.toBlob(async b=>{
       const file=new File([b],`big5-${s.slug}.png`,{type:'image/png'});
@@ -561,13 +561,13 @@ const unlocked = slug=>DB.get('unlocks').some(u=>u.city===slug&&u.device===devic
 function merchBlock(s){
   const [o,cl]=merchWindow(s); const now=Date.now(); const live=now>=o&&now<=cl; const open=unlocked(s.slug);
   return `<p class="kick">Exclusively in venue</p><h2 class="disp">City merch</h2>
-  <p class="body" style="color:var(--dim);margin-top:10px">Made for ${s.city}. Only people in the building can buy it, and it ships to your door.</p>
+  <p class="body" style="color:var(--dim);margin-top:10px">Made for ${s.city}. Only available in the building on show night.</p>
   <div class="teebox${open?'':' locked'}">
     ${teeHtml(s.slug,true)}
     <div class="tee-info">
       <span class="lock">${open?'Unlocked':'Locked'}</span>
       <h4 class="disp">BIG 5IVE LIVE<br>${s.city} Tee</h4>
-      <p class="body">${open?'$'+TEE_PRICE+' · ships to home':'Unlocks at '+esc(s.venue)+' on show night'}</p>
+      <p class="body">${open?'$'+TEE_PRICE+' · pick up in venue':'Unlocks at '+esc(s.venue)+' on show night'}</p>
       <button class="tee-flip" type="button">Flip · <span class="tee-side">Back</span></button>
     </div>
   </div>
@@ -617,10 +617,10 @@ function admin(){
   <p class="body" style="color:var(--dim)">Prototype data stored in this browser. Production connects to the shared database.</p>
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin:16px 0"><button class="btn" id="ev">Export votes CSV</button><button class="btn" id="er">Export city requests CSV</button></div>
   ${SHOWS.map(s=>{const {t,f}=tally(s.slug);const n=v.filter(x=>x.city===s.slug).length;return `<div class="panel"><h3 class="disp" style="font-size:36px">${s.city} <span class="tag">${n} votes</span></h3>
-    <table><tr><th>Song</th><th>Votes</th><th>As finale</th></tr>${Object.entries(t).sort((a,b)=>b[1]-a[1]).map(([k,c])=>`<tr><td>${esc(k)}</td><td>${c}</td><td>${f[k]||0}</td></tr>`).join('')}</table></div>`}).join('')}
+    <table><tr><th>Song</th><th>Votes</th><th>Old finale votes</th></tr>${Object.entries(t).sort((a,b)=>b[1]-a[1]).map(([k,c])=>`<tr><td>${esc(k)}</td><td>${c}</td><td>${f[k]||0}</td></tr>`).join('')}</table></div>`}).join('')}
   <div class="panel"><h3 class="disp" style="font-size:36px">City requests <span class="tag">${r.length}</span></h3>
   <table><tr><th>City</th><th>Email</th><th>Email opt-in</th><th>SMS opt-in</th></tr>${r.map(x=>`<tr><td>${esc(x.city)}, ${esc(x.state)}</td><td>${esc(x.email)}</td><td>${x.emailOptIn}</td><td>${x.smsOptIn}</td></tr>`).join('')}</table></div></div>`;
-  $('#ev').onclick=()=>dl('big5-votes.csv',csv(v.map(x=>({...x,pick1:x.picks[0]||'',pick2:x.picks[1]||'',pick3:x.picks[2]||'',pick4:x.picks[3]||''}))));
+  $('#ev').onclick=()=>dl('big5-votes.csv',csv(v.map(x=>({...x,pick1:x.picks[0]||'',pick2:x.picks[1]||'',pick3:x.picks[2]||'',pick4:x.picks[3]||'',pick5:x.picks[4]||x.finale||''}))));
   $('#er').onclick=()=>dl('big5-city-requests.csv',csv(r));
 }
 
