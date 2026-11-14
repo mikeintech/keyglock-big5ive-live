@@ -27,7 +27,7 @@ const SHOWS = [
 // fingertip positions (% of hand image)
 const SPOTS = [
   {st:'AZ', x:54.3, y:10.2}, {st:'CO', x:80.2, y:29.8}, {st:'TX', x:29.6, y:24.4, big:1},
-  {st:'DC', x:51.8, y:38.4}, {st:'GA', x:64.4, y:31.6},
+  {st:'DC', x:35.7, y:52.3}, {st:'GA', x:66.1, y:53.8},
 ];
 const MERCH = [
   {name:'City Tee', price:45}, {name:'City Hoodie', price:85}, {name:'Signed Poster', price:30},
