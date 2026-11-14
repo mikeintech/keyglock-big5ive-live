@@ -346,3 +346,4 @@ h2.disp + p,h2.disp + .body,h2.disp + .form,h2.disp + .kick{margin-top:16px}
 .cam{will-change:auto!important}
 .tilt{transform-style:flat}
 .cam img.hi{position:absolute;max-width:none;inset:auto}
+.tagline span{display:inline-block}

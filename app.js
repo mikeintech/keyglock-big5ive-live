@@ -5,7 +5,7 @@ const CONFIG = {
   swshDefault: 'https://www.joinswsh.com/p/3e7f282059e04917b329cd2f585678e4',
   streaming: 'https://keyglock.lnk.to/projectx',
   // results: 'always' | 'after-vote' | 'after-close'
-  resultsVisibility: 'after-vote',
+  resultsVisibility: 'hidden',   // 'hidden' | 'always' | 'after-vote' | 'after-close'
   voteClosesHoursBefore: 2,           // voting closes this many hours before doors
   merchRadiusMeters: 400,             // venue radius for location unlock
   merchCodes: { /* per-city rotating codes, shown on venue screens */ },
@@ -21,13 +21,13 @@ const SHOWS = [
   {slug:'dallas',      city:'Dallas',      st:'TX', date:'2026-12-08T20:00:00-06:00', venue:'House of Blues',      ll:[32.7843,-96.8090]},
   {slug:'houston',     city:'Houston',     st:'TX', date:'2026-12-09T20:00:00-06:00', venue:'House of Blues',      ll:[29.7536,-95.3612]},
   {slug:'san-antonio', city:'San Antonio', st:'TX', date:'2026-12-12T20:00:00-06:00', venue:'Aztec Theatre',       ll:[29.4268,-98.4925]},
-  {slug:'washington',  city:'Washington',  st:'DC', date:'2026-12-16T20:00:00-05:00', venue:'The Howard Theatre',  ll:[38.9155,-77.0209]},
+  {slug:'washington',  city:'DC',  st:'DC', date:'2026-12-16T20:00:00-05:00', venue:'The Howard Theatre',  ll:[38.9155,-77.0209]},
   {slug:'atlanta',     city:'Atlanta',     st:'GA', date:'2026-12-18T20:00:00-05:00', venue:'Tabernacle',          ll:[33.7588,-84.3915]},
 ];
 // fingertip positions (% of hand image)
 const SPOTS = [
-  {st:'AZ', x:29.5, y:24.5}, {st:'CO', x:45, y:26}, {st:'TX', x:52.7, y:10.8, big:1},
-  {st:'DC', x:64.5, y:27.5}, {st:'GA', x:80.2, y:30.2},
+  {st:'AZ', x:54.3, y:10.2}, {st:'CO', x:80.2, y:29.8}, {st:'TX', x:29.6, y:24.4, big:1},
+  {st:'DC', x:51.8, y:38.4}, {st:'GA', x:64.4, y:31.6},
 ];
 const MERCH = [
   {name:'City Tee', price:45}, {name:'City Hoodie', price:85}, {name:'Signed Poster', price:30},
@@ -50,7 +50,8 @@ const md = s=>{const d=new Date(s);return `${d.getUTCMonth()+1}·${String(new Da
 const mmdd = s=>s.slice(5,7)+'·'+s.slice(8,10);
 const longDate = s=>new Date(s).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',timeZone:'America/Chicago'});
 const closesAt = sh=>new Date(new Date(sh.date)-CONFIG.voteClosesHoursBefore*3600e3);
-const STATES = {AZ:'Arizona',CO:'Colorado',TX:'Texas',DC:'Washington DC',GA:'Georgia'};
+const cityLine = s=>s.city===s.st?s.city:`${s.city}, ${s.st}`;
+const STATES = {AZ:'Arizona',CO:'Colorado',TX:'Texas',DC:'DC',GA:'Georgia'};
 
 /* ---------- smooth scroll (Lenis) + ScrollTrigger ---------- */
 let lenis=null;
@@ -81,6 +82,7 @@ function route(){
   if(!location.hash.includes('#cmerch')) scrollTop();
   if(!first && !skipCurtain) curtain();
   skipCurtain=false; first = false;
+  fitText(); document.fonts&&document.fonts.ready.then(()=>fitText());
   requestAnimationFrame(()=>{ scrollFx(); window.ScrollTrigger&&ScrollTrigger.refresh() });
 }
 addEventListener('hashchange',route);
@@ -115,6 +117,15 @@ function scrollFx(){
 
 
 }
+
+function fitText(root=document){
+  root.querySelectorAll('.mega,.night .nc,.wipe h2,.maplabel').forEach(el=>{
+    el.style.fontSize=''; el.style.whiteSpace='nowrap';
+    let fs=parseFloat(getComputedStyle(el).fontSize), w=el.parentElement.clientWidth-4;
+    while(el.scrollWidth>w && fs>28){ fs-=2; el.style.fontSize=fs+'px' }
+  });
+}
+addEventListener('resize',()=>fitText());
 
 function closeSheet(){ $('.sheet').classList.remove('open'); $('.scrim').classList.remove('on') }
 $('.scrim').onclick = closeSheet;
@@ -185,14 +196,14 @@ function hub(){
     <div class="stagewrap">
       ${stageHtml(SPOTS.map((p,i)=>`<button class="spot${p.big?' big':''}" style="left:${p.x}%;top:${p.y}%;--d:${i*.4}s" data-st="${p.st}" aria-label="${STATES[p.st]}: ${SHOWS.filter(s=>s.st===p.st).length} show${SHOWS.filter(s=>s.st===p.st).length>1?'s':''}"><i>${CIRCLES?'':mapCircle(p.st)}</i><b>${p.st}<small>${SHOWS.filter(s=>s.st===p.st).length>1?'3 cities':SHOWS.find(s=>s.st===p.st).city}</small></b></button>`).join(''))}
     </div>
-    <p class="tagline"><span>5 States.</span> <span>5 Fingers.</span> <span class="red">Pick your city.</span></p>
+    <p class="tagline"><span>BIG 5IVE in 5 States.</span> <span class="red">Pick your city.</span></p>
     <div class="chips" role="list" aria-label="Pick a state">${SPOTS.map(p=>`<button class="chip" data-st="${p.st}" role="listitem">${p.st}<small>${SHOWS.filter(s=>s.st===p.st).length>1?SHOWS.filter(s=>s.st===p.st).length+' dates':mmdd(SHOWS.find(s=>s.st===p.st).date)}</small></button>`).join('')}</div>
     <a class="scrollcue" href="#dates" aria-label="See all dates">All dates ↓</a>
   </section>
   <section class="wrap" id="dates">
     <p class="kick">BIG 5IVE LIVE</p>
     <h2 class="disp">7 nights.<br><span class="red">5 states.</span></h2>
-    <ul class="dates">${SHOWS.map(s=>`<li><a href="#/show/${s.slug}"><span class="d">${mmdd(s.date)}</span><span><span class="c">${s.city}, ${s.st}</span><span class="v">${esc(s.venue)}</span></span><span class="go">${phase(s)==='after'?'Recap':'Tickets'}</span></a></li>`).join('')}</ul>
+    <ul class="dates">${SHOWS.map(s=>`<li><a href="#/show/${s.slug}"><span class="d">${mmdd(s.date)}</span><span><span class="c">${cityLine(s)}</span><span class="v">${esc(s.venue)}</span></span><span class="go">${phase(s)==='after'?'Recap':'Tickets'}</span></a></li>`).join('')}</ul>
   </section>
   <section class="wrap phases">
     <p class="kick">Every city page lives three lives</p>
@@ -323,9 +334,9 @@ function city(s){
   const atl = s.slug==='atlanta', ph = phase(s);
   const tiles = [
     {id:'tix', ic:ICON.ticket, t:'Tickets', s:'via Seated', show:ph!=='after'},
-    {id:'vote', ic:ICON.note, t:ph==='before'?'Build your 5':'Fan results', s:ph==='before'?'Fan-picked set list':'What ${city} voted'.replace('${city}',s.city)},
+    {id:'vote', ic:ICON.note, t:'Build your 5', s:'Fan-picked set list'},
     {id:'content', ic:ICON.cam, t:ph==='after'?'Memories':'Fan content', s:'Powered by SWSH'},
-    {id:'cmerch', ic:ICON.shirt, t:'City merch', s:ph==='live'?'Unlocked in venue':'Limited drop'},
+    {id:'cmerch', ic:ICON.shirt, t:'City merch', s:'Exclusively in venue'},
     ...(atl?[{id:'give', ic:ICON.gift, t:'Bottega bag', s:'Atlanta giveaway'}]:[]),
   ].filter(t=>t.show!==false);
   const sections = {
@@ -345,7 +356,7 @@ function city(s){
       <p class="kick"><span class="pdot ${ph}"></span>${phaseLabel(s)} · ${longDate(s.date)}</p>
       <div class="herostage">${stageHtml()}<div class="minimap">${mapCircle(s.st,s.slug)}</div></div>
       <h1 class="disp mega">${splitChars(s.city)}</h1>
-      <p class="meta">${esc(s.venue)} · ${s.city}, ${s.st}</p>
+      <p class="meta">${esc(s.venue)} · ${cityLine(s)}</p>
       <div class="cdrow"><div style="flex:1">
       ${ph==='before'?`<div class="cd" data-to="${+new Date(s.date)}"><div><b>00</b><small>Days</small></div><div><b>00</b><small>Hrs</small></div><div><b>00</b><small>Min</small></div><div><b>00</b><small>Sec</small></div></div>`:
         ph==='live'?`<div class="livebar"><span class="pdot live"></span>Doors are open. Vote results, uploads and merch are unlocked.</div>`:
@@ -409,7 +420,7 @@ function voteBlock(s){
   const closed = Date.now()>closesAt(s) || phase(s)!=='before';
   const mine = voted(s.slug);
   return `<p class="kick">Select your set list</p><h2 class="disp">Build<br>your <span class="red">5</span></h2>
-  <p class="body" style="color:var(--dim);margin-top:10px">Pick four tracks, then the <b style="color:var(--ink)">Fan-Picked Finale</b>, the song that closes the night in ${s.city}.</p>
+  <p class="body" style="color:var(--dim);margin-top:10px">Pick five tracks for a chance to hear your dream setlist performed live during a special segment of BIG 5IVE LIVE. Your 5th pick is the <b style="color:var(--ink)">Fan-Picked Finale</b>.</p>
   <p class="tag" style="margin-top:8px">${closed?'Voting closed':'Voting closes '+closesAt(s).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</p>
   <div class="panel record" id="vbox">${closed||mine?resultsHtml(s,mine):pickerHtml()}</div>`;
 }
@@ -461,7 +472,7 @@ function tally(slug){
 }
 function resultsHtml(s,mine,fresh){
   const closed = Date.now()>closesAt(s) || phase(s)!=='before';
-  const show = CONFIG.resultsVisibility==='always' || (CONFIG.resultsVisibility==='after-vote'&&mine) || closed;
+  const vis=CONFIG.resultsVisibility, show = vis!=='hidden' && (vis==='always' || (vis==='after-vote'&&mine) || closed);
   const {t,f} = tally(s.slug); const tot = Math.max(1,...Object.values(t));
   const top = Object.entries(t).sort((a,b)=>b[1]-a[1]).slice(0,8);
   const fin = Object.entries(f).sort((a,b)=>b[1]-a[1])[0];
@@ -469,7 +480,7 @@ function resultsHtml(s,mine,fresh){
     <ol>${mine.picks.map((p,i)=>`<li><b>0${i+1}</b>${esc(p)}</li>`).join('')}${mine.finale?`<li class="fin"><b>05</b>${esc(mine.finale)} <small>Fan-picked finale</small></li>`:''}</ol>
     <button class="btn" id="shr" style="width:100%;margin-top:14px">Share your set list ↗</button></div>`:''}
     ${show?`<p class="tag" style="margin-top:18px">${closed?'Final':'Live'} results · ${s.city}</p>${top.length?top.map(([n,c])=>`<div class="bar"><span>${esc(n)}</span><span class="red">${Math.round(c/tot*100)}%</span><span class="t"><i style="width:${c/tot*100}%"></i></span></div>`).join(''):'<p class="body" style="color:var(--dim)">No votes yet.</p>'}
-    ${fin?`<p class="body" style="margin-top:14px">Leading finale: <b class="red">${esc(fin[0])}</b></p>`:''}`:'<p class="tag" style="margin-top:14px">Results reveal when voting closes.</p>'}`;
+    ${fin?`<p class="body" style="margin-top:14px">Leading finale: <b class="red">${esc(fin[0])}</b></p>`:''}`:''}`;
 }
 let handImg;
 function shareImage(s,v){
@@ -529,7 +540,7 @@ function merchWindow(s){ const d=new Date(s.date); return [new Date(+d-3*3600e3)
 const unlocked = slug=>DB.get('unlocks').some(u=>u.city===slug&&u.device===deviceId());
 function merchBlock(s){
   const [o,cl]=merchWindow(s); const now=Date.now(); const live=now>=o&&now<=cl; const open=unlocked(s.slug);
-  return `<p class="kick">${s.city} exclusive · show night only</p><h2 class="disp">City<br>merch</h2>
+  return `<p class="kick">Exclusively in venue</p><h2 class="disp">City<br>merch</h2>
   <p class="body" style="color:var(--dim);margin-top:10px">Made for ${s.city}. Only people in the building can buy it, and it ships to your door.</p>
   <div class="merch-grid">${MERCH.map(m=>`<div class="prod${open?'':' locked'}"><div class="ph" style="background-image:url(img/lead.jpg)"></div>${open?'':'<span class="lock">Locked</span>'}<h4>${s.city} ${m.name}</h4><small>${open?'$'+m.price+' · ships to home':'Unlocks at '+esc(s.venue)}</small></div>`).join('')}</div>
   <div class="panel" id="mbox">${open?`<button class="btn" style="width:100%">Shop ${s.city} drop</button>`:
@@ -558,7 +569,7 @@ function dist(a,b,c,d){ const R=6371e3,r=Math.PI/180,x=Math.sin((c-a)*r/2)**2+Ma
 /* ---------- tabs ---------- */
 function merchPage(){
   app.innerHTML = `<div class="city-hero"><div class="wrap"><p class="kick">BIG 5IVE LIVE</p><h1 class="disp">Merch</h1>
-    <p class="body" style="color:var(--dim);margin-top:10px">Every city gets its own drop, sold only in the building on show night. Pick a city to see what's coming.</p></div></div>
+    <p class="body" style="color:var(--dim);margin-top:10px">Exclusively in venue. Every city gets its own drop, sold only in the building on show night. Pick a city to see what's coming.</p></div></div>
   <div class="wrap"><ul class="dates">${SHOWS.map(s=>`<li><a href="#/show/${s.slug}#cmerch"><span class="d">${mmdd(s.date)}</span><span><span class="c">${s.city} drop</span><span class="v">${esc(s.venue)}</span></span><span class="go">Preview</span></a></li>`).join('')}</ul></div>`;
 }
 function music(){
