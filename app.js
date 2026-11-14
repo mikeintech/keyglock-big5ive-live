@@ -236,7 +236,7 @@ function hub(){
   <section class="wrap"><video src="video/trailer.mp4" autoplay muted loop playsinline style="width:100%;border-radius:6px"></video></section>
   <section class="wrap" id="request">
     <p class="kick">Not on the list?</p>
-    <h2 class="disp">Request<br>your city</h2>
+    <h2 class="disp">Request your city</h2>
     ${requestForm()}
   </section>`;
   const stage=$('.stage');
@@ -360,10 +360,10 @@ function city(s){
     ...(atl?[{id:'give', ic:ICON.gift, t:'Bottega bag', s:'Atlanta giveaway'}]:[]),
   ].filter(t=>t.show!==false);
   const sections = {
-    tix:`<section id="tix"><p class="kick">Tickets</p><h2 class="disp">Get in<br>the room</h2>
+    tix:`<section id="tix"><p class="kick">Tickets</p><h2 class="disp">Get in the room</h2>
       <div class="panel"><div class="seated"><div id="${CONFIG.seatedWidgetId}" data-artist-id="${CONFIG.seatedArtistId}" data-css-version="4"></div></div></div></section>`,
     vote:`<section id="vote">${voteBlock(s)}</section>`,
-    content:`<section id="content"><p class="kick">${ph==='after'?'You were there':'From the floor'}</p><h2 class="disp">${s.city}<br>${ph==='after'?'memories':'live'}</h2>
+    content:`<section id="content"><p class="kick">${ph==='after'?'You were there':'From the floor'}</p><h2 class="disp">${s.city} ${ph==='after'?'memories':'live'}</h2>
       <p class="body" style="color:var(--dim);margin-top:10px">${ph==='before'?'Opens on show night. Upload your photos and video from the floor.':ph==='live'?'Upload right now. Your clips land here in real time.':'Every photo and clip fans shared from the night.'}</p>
       <div class="panel"><iframe class="embed" src="${s.swsh||CONFIG.swshDefault}" title="${s.city} show photos and videos" loading="lazy" allow="camera;microphone;clipboard-write"></iframe></div></section>`,
     cmerch:`<section id="cmerch">${merchBlock(s)}</section>`,
@@ -386,7 +386,7 @@ function city(s){
   </section>
   <div class="wrap">
     ${order.map(k=>sections[k]).join('')}
-    ${atl?`<section id="give"><div class="giveaway"><span class="gic">${ICON.gift}</span><p class="kick">Atlanta only</p><h2 class="disp">Win the<br>Bottega bag</h2>
+    ${atl?`<section id="give"><div class="giveaway"><span class="gic">${ICON.gift}</span><p class="kick">Atlanta only</p><h2 class="disp">Win the Bottega bag</h2>
       <p class="body" style="margin:12px 0 18px;color:var(--dim)">Christmas giveaway for the Tabernacle show.</p>
       <a class="btn" href="${CONFIG.giveaway.url}" target="_blank" rel="noopener">Enter now ↗</a>
       <p class="body" style="font-size:11px;color:var(--dim);margin-top:14px">${esc(CONFIG.giveaway.legal)}</p></div></section>`:''}
@@ -439,8 +439,8 @@ function deviceId(){ let id; try{ id=localStorage.getItem('b5_dev') }catch(e){} 
 function voteBlock(s){
   const closed = Date.now()>closesAt(s) || phase(s)!=='before';
   const mine = voted(s.slug);
-  return `<p class="kick">Select your set list</p><h2 class="disp">Build<br>your <span class="red">5</span></h2>
-  <p class="body" style="color:var(--dim);margin-top:10px">Pick five tracks for a chance to hear your dream setlist performed live during a special segment of BIG 5IVE LIVE. Your 5th pick is the <b style="color:var(--ink)">Fan-Picked Finale</b>.</p>
+  return `<p class="kick">Select your set list</p><h2 class="disp">Build your <span class="red">5</span></h2>
+  <p class="body" style="color:var(--dim);margin-top:10px">Pick five tracks for a chance to hear your dream setlist performed live during a special segment of <b style="color:var(--ink)">Big 5ive Live</b>. Your 5th pick is the <b style="color:var(--ink)">Fan-Picked Finale</b>.</p>
   <p class="tag" style="margin-top:8px">${closed?'Voting closed':'Voting closes '+closesAt(s).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</p>
   <div class="panel record" id="vbox">${closed||mine?resultsHtml(s,mine):pickerHtml()}</div>`;
 }
@@ -560,7 +560,7 @@ function merchWindow(s){ const d=new Date(s.date); return [new Date(+d-3*3600e3)
 const unlocked = slug=>DB.get('unlocks').some(u=>u.city===slug&&u.device===deviceId());
 function merchBlock(s){
   const [o,cl]=merchWindow(s); const now=Date.now(); const live=now>=o&&now<=cl; const open=unlocked(s.slug);
-  return `<p class="kick">Exclusively in venue</p><h2 class="disp">City<br>merch</h2>
+  return `<p class="kick">Exclusively in venue</p><h2 class="disp">City merch</h2>
   <p class="body" style="color:var(--dim);margin-top:10px">Made for ${s.city}. Only people in the building can buy it, and it ships to your door.</p>
   <div class="teebox${open?'':' locked'}">
     ${teeHtml(s.slug,true)}
