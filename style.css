@@ -347,3 +347,46 @@ h2.disp + p,h2.disp + .body,h2.disp + .form,h2.disp + .kick{margin-top:16px}
 .tilt{transform-style:flat}
 .cam img.hi{position:absolute;max-width:none;inset:auto}
 .tagline span{display:inline-block}
+
+/* city tee */
+.teebox{display:grid;grid-template-columns:1fr;gap:16px;margin-top:20px;align-items:center}
+.tee{position:relative;perspective:1200px;cursor:pointer;aspect-ratio:400/440;max-width:440px;width:100%;margin:0 auto;transform-style:preserve-3d}
+.tee-in{position:absolute;inset:0;transform-style:preserve-3d}
+.tee-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.tee-face.front{transform:rotateY(0deg)}
+.tee-face.back{transform:rotateY(180deg)}
+.tee-shape{position:absolute;inset:0;width:100%;height:100%;filter:drop-shadow(0 24px 40px #000)}
+.tee-shape path{fill:#141414;stroke:#262626;stroke-width:2}
+.tee .print{position:absolute;left:50%;translate:-50% 0;pointer-events:none}
+.tee .front-print{top:24%;width:46%}
+.tee .back-print{top:15%;width:50%}
+.tee::after{content:"";position:absolute;inset:-6%;z-index:-1;background:radial-gradient(circle at 50% 45%,#e3202a40,transparent 60%)}
+.tee-info .lock{position:static;display:inline-block}
+.teebox:not(.locked) .tee-info .lock{background:#1f7a3a}
+.tee-info h4{font-size:clamp(40px,10vw,64px);margin:10px 0 8px}
+.tee-info p{color:var(--dim)}
+.tee-flip{margin-top:14px;background:none;border:1px solid var(--line);color:var(--ink);padding:9px 14px;border-radius:999px;font-size:15px;letter-spacing:.14em;cursor:pointer}
+.tee-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0 40px}
+.tee-card{border:1px solid var(--line);border-radius:10px;padding:12px;background:#0b0b0b}
+.tee-card a{display:grid;gap:2px;text-decoration:none;margin-top:8px}
+.tee-card .d{color:var(--red);font-size:15px}
+.tee-card b{font-weight:400;font-size:30px;line-height:1}
+.tee-card small{color:var(--dim);font-size:12px;letter-spacing:.1em}
+@media (min-width:760px){.teebox{grid-template-columns:1.1fr .9fr}.tee-grid{grid-template-columns:repeat(3,1fr)}}
+
+/* real mockups */
+.tee.mock{aspect-ratio:1}
+.tee.mock .tee-face img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 22px 34px #000)}
+
+/* flip: only one side rendered at a time */
+.tee{transform-style:flat;perspective:900px}
+.tee-in{transform-style:flat}
+.tee .tee-face{backface-visibility:visible;-webkit-backface-visibility:visible;transform:none!important}
+.tee .tee-face.front{display:none}
+.tee.show-front .tee-face.front{display:block}
+.tee.show-front .tee-face.back{display:none}
+.tee{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+.tee.mock .tee-face img{transform:scale(1.14)}
+
+/* the front image is drawn mirrored so it reads correctly once the card has turned 180° */
+.tee.mock .tee-face.front img{transform:scaleX(-1) scale(1.14)}

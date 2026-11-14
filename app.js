@@ -29,9 +29,28 @@ const SPOTS = [
   {st:'AZ', x:54.3, y:10.2}, {st:'CO', x:80.2, y:29.8}, {st:'TX', x:29.6, y:24.4, big:1},
   {st:'DC', x:35.7, y:52.3}, {st:'GA', x:66.1, y:53.8},
 ];
-const MERCH = [
-  {name:'City Tee', price:45}, {name:'City Hoodie', price:85}, {name:'Signed Poster', price:30},
-];
+// city tee designs (front is shared, back is per city); price is a placeholder
+const TEE_PRICE = 45;
+const teeSvg = back=>`<svg class="tee-shape" viewBox="0 0 400 440" aria-hidden="true"><path d="M128 18 L84 30 L12 88 L52 152 L92 128 L92 432 L308 432 L308 128 L348 152 L388 88 L316 30 L272 18 Q258 ${back?32:58} 200 ${back?34:60} Q142 ${back?32:58} 128 18Z"/></svg>`;
+const teeHtml = (slug,big)=>`<div class="tee mock${big?' big':''}" data-slug="${slug}"><div class="tee-in">
+  <div class="tee-face front"><img src="img/merch/mock-${slug}-front.webp?v=4" alt="BIG 5IVE LIVE tee, front"></div>
+  <div class="tee-face back"><img src="img/merch/mock-${slug}-back.webp?v=4" alt="BIG 5IVE LIVE tee, back"></div>
+</div></div>`;
+function bindTees(root=document){
+  // one continuous 180° turn; the visible side swaps at the edge-on moment. Hover flips on mouse, tap flips on touch.
+  root.querySelectorAll('.tee').forEach(t=>{ if(t.dataset.b) return; t.dataset.b=1;
+    const inn=$('.tee-in',t), st={r:0}; let target=0, ptype='mouse';
+    const draw=()=>{ inn.style.transform=`rotateY(${st.r}deg)`; t.classList.toggle('show-front',st.r>90);
+      const l=t.closest('.teebox,.tee-card')?.querySelector('.tee-side'); if(l) l.textContent=st.r>90?'Front':'Back' };
+    const go=to=>{ target=to; if(!window.gsap||reduce){ st.r=to; draw(); return }
+      gsap.to(st,{r:to,duration:.7,ease:'power2.inOut',overwrite:true,onUpdate:draw}) };
+    t.flip=()=>go(target?0:180);
+    t.addEventListener('pointerdown',e=>{ ptype=e.pointerType });
+    t.addEventListener('pointerenter',e=>{ if(e.pointerType==='mouse') go(180) });
+    t.addEventListener('pointerleave',e=>{ if(e.pointerType==='mouse') go(0) });
+    t.addEventListener('click',()=>{ if(ptype!=='mouse') t.flip() });
+  });
+}
 
 /* ---------- data layer (swap for Supabase / CRM API) ---------- */
 const DB = {
@@ -542,7 +561,15 @@ function merchBlock(s){
   const [o,cl]=merchWindow(s); const now=Date.now(); const live=now>=o&&now<=cl; const open=unlocked(s.slug);
   return `<p class="kick">Exclusively in venue</p><h2 class="disp">City<br>merch</h2>
   <p class="body" style="color:var(--dim);margin-top:10px">Made for ${s.city}. Only people in the building can buy it, and it ships to your door.</p>
-  <div class="merch-grid">${MERCH.map(m=>`<div class="prod${open?'':' locked'}"><div class="ph" style="background-image:url(img/lead.jpg)"></div>${open?'':'<span class="lock">Locked</span>'}<h4>${s.city} ${m.name}</h4><small>${open?'$'+m.price+' · ships to home':'Unlocks at '+esc(s.venue)}</small></div>`).join('')}</div>
+  <div class="teebox${open?'':' locked'}">
+    ${teeHtml(s.slug,true)}
+    <div class="tee-info">
+      <span class="lock">${open?'Unlocked':'Locked'}</span>
+      <h4 class="disp">BIG 5IVE LIVE<br>${s.city} Tee</h4>
+      <p class="body">${open?'$'+TEE_PRICE+' · ships to home':'Unlocks at '+esc(s.venue)+' on show night'}</p>
+      <button class="tee-flip" type="button">Flip · <span class="tee-side">Back</span></button>
+    </div>
+  </div>
   <div class="panel" id="mbox">${open?`<button class="btn" style="width:100%">Shop ${s.city} drop</button>`:
     now<o?`<p class="tag">Unlocks in</p><div class="count" data-to="${+o}"></div><p class="body" style="color:var(--dim)">Be at ${esc(s.venue)} on show night to get in.</p>`:
     now>cl?`<p class="tag">This drop is closed.</p><p class="body" style="color:var(--dim)">You had to be there.</p>`:
@@ -550,6 +577,7 @@ function merchBlock(s){
      <div class="form" style="margin-top:0"><input id="mcode" placeholder="Venue code" autocapitalize="characters"><button class="btn" id="mgo">Unlock</button><button class="btn ghost" id="mgeo">Use my location</button><p class="err body red" id="merr"></p></div>`}</div>`;
 }
 function bindMerch(s){
+  bindTees($('#cmerch')); const fb=$('#cmerch .tee-flip'); if(fb) fb.onclick=()=>$('#cmerch .tee').flip();
   const box=$('#mbox'); if(!box) return;
   const cd=$('.count',box); if(cd){ const tick=()=>{ if(!document.body.contains(cd)) return; let t=Math.max(0,cd.dataset.to-Date.now())/1e3;
     cd.textContent=`${Math.floor(t/86400)}D ${String(Math.floor(t%86400/3600)).padStart(2,'0')}H ${String(Math.floor(t%3600/60)).padStart(2,'0')}M ${String(Math.floor(t%60)).padStart(2,'0')}S`; setTimeout(tick,1000) }; tick() }
@@ -569,8 +597,9 @@ function dist(a,b,c,d){ const R=6371e3,r=Math.PI/180,x=Math.sin((c-a)*r/2)**2+Ma
 /* ---------- tabs ---------- */
 function merchPage(){
   app.innerHTML = `<div class="city-hero"><div class="wrap"><p class="kick">BIG 5IVE LIVE</p><h1 class="disp">Merch</h1>
-    <p class="body" style="color:var(--dim);margin-top:10px">Exclusively in venue. Every city gets its own drop, sold only in the building on show night. Pick a city to see what's coming.</p></div></div>
-  <div class="wrap"><ul class="dates">${SHOWS.map(s=>`<li><a href="#/show/${s.slug}#cmerch"><span class="d">${mmdd(s.date)}</span><span><span class="c">${s.city} drop</span><span class="v">${esc(s.venue)}</span></span><span class="go">Preview</span></a></li>`).join('')}</ul></div>`;
+    <p class="body" style="color:var(--dim);margin-top:10px">Exclusively in venue. Every city gets its own tee, sold only in the building on show night. Tap a tee to flip it.</p></div></div>
+  <div class="wrap"><div class="tee-grid">${SHOWS.map(s=>`<div class="tee-card">${teeHtml(s.slug)}<a href="#/show/${s.slug}#cmerch"><span class="d">${mmdd(s.date)}</span><b class="disp">${s.city}</b><small>${esc(s.venue)} · Locked</small></a></div>`).join('')}</div></div>`;
+  bindTees(app);
 }
 function music(){
   app.innerHTML = `<div class="city-hero"><div class="wrap"><p class="kick">Key Glock</p><h1 class="disp">Music</h1></div></div>
