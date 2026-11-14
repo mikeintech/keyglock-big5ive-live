@@ -204,7 +204,7 @@ function bindParallax(stage){
   const om=e=>{ if(e.gamma==null) return; move(Math.max(-1,Math.min(1,e.gamma/30))*.5,Math.max(-1,Math.min(1,(e.beta-45)/30))*.5) };
   addEventListener('pointermove',pm); addEventListener('deviceorientation',om);
   // idle drift so it breathes even without input (phones without tilt access)
-  const drift=gsap.to({t:0},{t:1,duration:7,repeat:-1,yoyo:true,ease:'sine.inOut',onUpdate(){ if(!stage.matches(':hover')){ const t=this.targets()[0].t; move((t-.5)*.5,Math.sin(t*3)*.15) } }});
+  const drift=gsap.to({t:0},{t:1,duration:7,repeat:-1,yoyo:true,ease:'sine.inOut',onUpdate(){ if(!stage.matches(':hover')){ const t=this.targets()[0].t; const k=innerWidth<700?.18:.5; move((t-.5)*k,Math.sin(t*3)*.15*k*2) } }});
   motionOff.push(()=>{ removeEventListener('pointermove',pm); removeEventListener('deviceorientation',om); drift.kill() });
 }
 

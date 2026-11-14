@@ -393,3 +393,6 @@ h2.disp + p,h2.disp + .body,h2.disp + .form,h2.disp + .kick{margin-top:16px}
 
 .tee-card{cursor:pointer}
 .tee-card:hover{border-color:var(--red)}
+
+/* centre the poster on its title (the LIVE smear trails right in the art) */
+.landing .stage,.herostage .stage{translate:-0.6% 0}
