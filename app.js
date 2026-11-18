@@ -12,6 +12,9 @@ const CONFIG = {
   // PLACEHOLDER list until label sends the approved songs
   songs: ['Ambition For Cash','Mr. Glock','Russian Cream','Dig That','Proud Of Me','Since 9',
           'Yellow Tape','Gang Gang','Party Animal','Dirty Glock','Something Bout Me','Glockoma'],
+  // Request Your City: UMG form embed. Set useEmbedForm:false to bring back our own form (kept below for later).
+  requestFormUrl: 'https://forms.umusic-online.com/forms/-P6eluVtfuuRpuyRNJvT',
+  useEmbedForm: true,
   giveaway: { url: '#', legal: 'Official rules and eligibility to come. No purchase necessary.' },
 };
 // doors in local venue time with UTC offset
@@ -237,7 +240,7 @@ function hub(){
   <section class="wrap" id="request">
     <p class="kick">Not on the list?</p>
     <h2 class="disp">Request your city</h2>
-    ${requestForm()}
+    ${CONFIG.useEmbedForm?`<div class="umg-form"><iframe src="${CONFIG.requestFormUrl}" title="Request your city" loading="lazy"></iframe></div>`:requestForm()}
   </section>`;
   const stage=$('.stage');
   bindParallax(stage);
@@ -248,7 +251,7 @@ function hub(){
   });
   app.querySelectorAll('.spot,.chip').forEach(b=>b.onclick=e=>pickState(b.dataset.st,e));
   const cue=$('.scrollcue'); if(cue) cue.onclick=e=>{ e.preventDefault(); scrollToEl($('#dates'),-64) };
-  bindRequest();
+  if(!CONFIG.useEmbedForm) bindRequest();
   if(window.gsap){
     const tl=gsap.timeline();
     if(intro){

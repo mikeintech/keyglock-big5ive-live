@@ -396,3 +396,10 @@ h2.disp + p,h2.disp + .body,h2.disp + .form,h2.disp + .kick{margin-top:16px}
 
 /* centre the poster on its title (the LIVE smear trails right in the art) */
 .landing .stage,.herostage .stage{translate:-0.6% 0}
+
+/* UMG request form embed */
+.umg-form{margin-top:22px;border-radius:10px;overflow:hidden;background:transparent}
+.umg-form iframe{display:block;width:100%;height:740px;border:0}
+/* custom $ cursor (click point at the top of the stem) */
+html,body,*{cursor:url(img/cursor.png) 24 4,auto;cursor:-webkit-image-set(url(img/cursor.png) 1x,url(img/cursor@2x.png) 2x) 24 4,auto;cursor:image-set(url(img/cursor.png) 1x,url(img/cursor@2x.png) 2x) 24 4,auto}
+input,textarea,select{cursor:text}
