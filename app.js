@@ -9,12 +9,16 @@ const CONFIG = {
   voteClosesHoursBefore: 2,           // voting closes this many hours before doors
   merchRadiusMeters: 400,             // venue radius for location unlock
   merchCodes: { /* per-city rotating codes, shown on venue screens */ },
-  // PLACEHOLDER list until label sends the approved songs
-  songs: ['Ambition For Cash','Mr. Glock','Russian Cream','Dig That','Proud Of Me','Since 9',
-          'Yellow Tape','Gang Gang','Party Animal','Dirty Glock','Something Bout Me','Glockoma'],
+  // approved set list songs
+  songs: ['Blue Devil','Fuck A Feature','Fell In Luv','Set In Stone','Big Boy Sh!t','Channel 5','Badu',
+          'On My Soul','Juice Mane','Spike Lee','I’m Just Saying','A+','Diapers','PaperCutz'],
+  // special catch-all pick, shown highlighted at the end of the list
+  unreleased: { label:'UNRELEASED*', note:'*Any unreleased song' },
   // Request Your City: UMG form embed. Set useEmbedForm:false to bring back our own form (kept below for later).
   requestFormUrl: 'https://forms.umusic-online.com/forms/-P6eluVtfuuRpuyRNJvT',
   useEmbedForm: true,
+  showFanContent: false,   // SWSH 'Live' section, hidden for now
+  ticketsSoldOut: true,    // tickets move to the bottom of city pages
   giveaway: { url: '#', legal: 'Official rules and eligibility to come. No purchase necessary.' },
 };
 // doors in local venue time with UTC offset
@@ -226,7 +230,7 @@ function hub(){
   <section class="wrap" id="dates">
     <p class="kick">BIG 5IVE LIVE</p>
     <h2 class="disp">7 nights.<br><span class="red">5 states.</span></h2>
-    <ul class="dates">${SHOWS.map(s=>`<li><a href="#/show/${s.slug}"><span class="d">${mmdd(s.date)}</span><span><span class="c">${cityLine(s)}</span><span class="v">${esc(s.venue)}</span></span><span class="go">${phase(s)==='after'?'Recap':'Tickets'}</span></a></li>`).join('')}</ul>
+    <ul class="dates">${SHOWS.map(s=>`<li><a href="#/show/${s.slug}"><span class="d">${mmdd(s.date)}</span><span><span class="c">${cityLine(s)}</span><span class="v">${esc(s.venue)}</span></span><span class="go">${phase(s)==='after'?'Recap':CONFIG.ticketsSoldOut?'Pick your 5':'Tickets'}</span></a></li>`).join('')}</ul>
   </section>
   <section class="wrap phases">
     <p class="kick">Every city page lives three lives</p>
@@ -356,11 +360,11 @@ const phaseLabel = s=>({before:'On sale',live:'Live now',after:'Recap'})[phase(s
 function city(s){
   const atl = s.slug==='atlanta', ph = phase(s);
   const tiles = [
-    {id:'tix', ic:ICON.ticket, t:'Tickets', s:'via Seated', show:ph!=='after'},
-    {id:'vote', ic:ICON.note, t:'Build your 5', s:'Fan-picked set list'},
-    {id:'content', ic:ICON.cam, t:ph==='after'?'Memories':'Fan content', s:'Powered by SWSH'},
+    {id:'vote', ic:ICON.note, t:'Choose your set list', s:'Build your 5'},
     {id:'cmerch', ic:ICON.shirt, t:'City merch', s:'Exclusively in venue'},
     ...(atl?[{id:'give', ic:ICON.gift, t:'Bottega bag', s:'Atlanta giveaway'}]:[]),
+    {id:'content', ic:ICON.cam, t:ph==='after'?'Memories':'Fan content', s:'Powered by SWSH', show:CONFIG.showFanContent},
+    {id:'tix', ic:ICON.ticket, t:'Tickets', s:CONFIG.ticketsSoldOut?'Sold out':'via Seated', show:ph!=='after'},
   ].filter(t=>t.show!==false);
   const sections = {
     tix:`<section id="tix"><p class="kick">Tickets</p><h2 class="disp">Get in the room</h2>
@@ -371,7 +375,7 @@ function city(s){
       <div class="panel"><iframe class="embed" src="${s.swsh||CONFIG.swshDefault}" title="${s.city} show photos and videos" loading="lazy" allow="camera;microphone;clipboard-write"></iframe></div></section>`,
     cmerch:`<section id="cmerch">${merchBlock(s)}</section>`,
   };
-  const order = ph==='before'?['tix','vote','cmerch','content']:ph==='live'?['content','cmerch','vote','tix']:['content','vote','cmerch'];
+  const order = (ph==='before'?['vote','cmerch','content','tix']:ph==='live'?['vote','cmerch','content','tix']:['vote','content','cmerch']).filter(k=>k!=='content'||CONFIG.showFanContent);
   app.innerHTML = `
   <section class="chapter city-chap">
     <div class="wrap chap-in">
@@ -450,7 +454,7 @@ function voteBlock(s){
 function pickerHtml(){
   return `<div class="slots">${[0,1,2,3,4].map(i=>`<button class="slot" data-i="${i}" aria-label="Track ${i+1}"><span class="sn">0${i+1}</span><span class="st">Track 0${i+1}</span></button>`).join('')}</div>
   <p class="tag" id="pc" style="margin:16px 0 8px">Tap a song to drop it on Track 01</p>
-  <div class="crate">${CONFIG.songs.map(t=>`<button class="song" data-t="${esc(t)}"><span class="play">▶</span><span>${esc(t)}</span><span class="plus">+</span></button>`).join('')}</div>
+  <div class="crate">${CONFIG.songs.map(t=>`<button class="song" data-t="${esc(t)}"><span class="play">▶</span><span>${esc(t)}</span><span class="plus">+</span></button>`).join('')}${CONFIG.unreleased?`<button class="song special" data-t="${esc(CONFIG.unreleased.label)}"><span class="play">★</span><span>${esc(CONFIG.unreleased.label)}<small>${esc(CONFIG.unreleased.note)}</small></span><span class="plus">+</span></button>`:''}</div>
   <div class="picks-bar"><span class="tag" id="cnt">0/5</span><button class="btn" id="vsub" disabled>Lock in my 5</button></div>`;
 }
 function bindVote(s){
