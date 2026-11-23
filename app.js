@@ -18,7 +18,9 @@ const CONFIG = {
   requestFormUrl: 'https://forms.umusic-online.com/forms/-P6eluVtfuuRpuyRNJvT',
   useEmbedForm: true,
   showFanContent: false,   // SWSH 'Live' section, hidden for now
-  ticketsSoldOut: true,    // tickets move to the bottom of city pages
+  ticketsSoldOut: true,
+  showGiveaway: false,     // Atlanta Bottega bag giveaway, hidden for now
+  setlistFormAfterVote: true, // UMG data-capture form appears once a fan locks in their 5    // tickets move to the bottom of city pages
   giveaway: { url: '#', legal: 'Official rules and eligibility to come. No purchase necessary.' },
 };
 // doors in local venue time with UTC offset
@@ -404,7 +406,7 @@ function city(s){
   const tiles = [
     {id:'vote', ic:ICON.note, t:'Choose your set list', s:'Build your 5'},
     {id:'cmerch', ic:ICON.shirt, t:'City merch', s:'Exclusively in venue'},
-    ...(atl?[{id:'give', ic:ICON.gift, t:'Bottega bag', s:'Atlanta giveaway'}]:[]),
+    ...(atl&&CONFIG.showGiveaway?[{id:'give', ic:ICON.gift, t:'Bottega bag', s:'Atlanta giveaway'}]:[]),
     {id:'content', ic:ICON.cam, t:ph==='after'?'Memories':'Fan content', s:'Powered by SWSH', show:CONFIG.showFanContent},
     {id:'tix', ic:ICON.ticket, t:'Tickets', s:CONFIG.ticketsSoldOut?'Sold out':'via Seated', show:ph!=='after'},
   ].filter(t=>t.show!==false);
@@ -435,7 +437,7 @@ function city(s){
   </section>
   <div class="wrap">
     ${order.map(k=>sections[k]).join('')}
-    ${atl?`<section id="give"><div class="giveaway"><span class="gic">${ICON.gift}</span><p class="kick">Atlanta only</p><h2 class="disp">Win the Bottega bag</h2>
+    ${atl&&CONFIG.showGiveaway?`<section id="give"><div class="giveaway"><span class="gic">${ICON.gift}</span><p class="kick">Atlanta only</p><h2 class="disp">Win the Bottega bag</h2>
       <p class="body" style="margin:12px 0 18px;color:var(--dim)">Christmas giveaway for the Tabernacle show.</p>
       <a class="btn" href="${CONFIG.giveaway.url}" target="_blank" rel="noopener">Enter now ↗</a>
       <p class="body" style="font-size:11px;color:var(--dim);margin-top:14px">${esc(CONFIG.giveaway.legal)}</p></div></section>`:''}
@@ -549,7 +551,7 @@ function resultsHtml(s,mine,fresh){
   const fin = Object.entries(f).sort((a,b)=>b[1]-a[1])[0];
   return `${mine?`<div class="locked"><span class="stamp">✓</span><h3 class="disp">${fresh?'Your 5 is locked in':'Your 5'}</h3><p class="tag">${s.city}</p>
     <ol>${mine.picks.map((p,i)=>`<li><b>0${i+1}</b>${esc(p)}</li>`).join('')}${mine.finale?`<li><b>05</b>${esc(mine.finale)}</li>`:''}</ol>
-    <button class="btn" id="shr" style="width:100%;margin-top:14px">Share your set list ↗</button></div>`:''}
+    <button class="btn" id="shr" style="width:100%;margin-top:14px">Share your set list ↗</button></div>${CONFIG.setlistFormAfterVote?`<div class="vote-form"><p class="kick" style="margin-top:22px">Stay locked in</p><h3 class="disp" style="font-size:clamp(34px,9vw,52px);margin:6px 0 4px">Get first word</h3><p class="body" style="color:var(--dim)">Key Glock shows, music and merch, straight to you.</p><div class="umg-form"><iframe src="${CONFIG.requestFormUrl}" title="Sign up for Key Glock updates" loading="lazy"></iframe></div></div>`:''}`:''}
     ${show?`<p class="tag" style="margin-top:18px">${closed?'Final':'Live'} results · ${s.city}</p>${top.length?top.map(([n,c])=>`<div class="bar"><span>${esc(n)}</span><span class="red">${Math.round(c/tot*100)}%</span><span class="t"><i style="width:${c/tot*100}%"></i></span></div>`).join(''):'<p class="body" style="color:var(--dim)">No votes yet.</p>'}
     `:''}`;
 }
