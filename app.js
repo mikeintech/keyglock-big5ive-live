@@ -93,11 +93,30 @@ const scrollTop=()=>{ lenis?lenis.scrollTo(0,{immediate:true}):window.scrollTo(0
 
 /* ---------- router ---------- */
 let first = true, skipCurtain = false;
+// ---- Google Tag Manager events (GTM-PKNZNSQZ) ----
+window.dataLayer=window.dataLayer||[];
+function gtag(){ dataLayer.push(arguments) }
+let firstView=true;
+const track=(event,params={})=>{ try{
+  dataLayer.push({event,...params});                       // for GTM triggers
+  if(event==='virtual_page_view'){ if(firstView){ firstView=false; return }   // first view is sent by the GA4 tag itself
+    gtag('event','page_view',{page_location:params.page_location,page_title:params.page_title}); return }
+  gtag('event',event,params);                              // straight to GA4 via the Google tag GTM loads
+}catch(e){} };
+document.addEventListener('click',e=>{
+  const a=e.target.closest('a[href]'); if(!a) return;
+  let u; try{ u=new URL(a.href,location.href) }catch(_){ return }
+  if(u.host===location.host) return;
+  const h=u.href.toLowerCase(), t=(a.innerText||'').trim().slice(0,80);
+  const type=/seated|ticket/.test(h+t.toLowerCase())?'tickets':/giveaway|enter/.test(h+t.toLowerCase())?'giveaway':/spotify|apple|music|listen|youtube|tidal/.test(h+t.toLowerCase())?'streaming':/yupefer/.test(h)?'credit':'other';
+  track('outbound_click',{link_url:u.href,link_text:t,link_type:type,page_path:location.hash||'#/'});
+},true);
 function route(){
   const h = location.hash.replace(/^#\/?/,'');
   const [a,b0] = h.split('/'); const b=(b0||'').split('#')[0];
   closeSheet(); killMotion();
   document.body.dataset.view = a||'hub';
+  track('virtual_page_view',{page_path:'/'+h.split('#')[0],page_location:location.href,page_title:document.title,view:a||'hub',city:a==='show'?b:undefined});
   document.querySelectorAll('.tabs a').forEach(t=>t.classList.toggle('on',
     t.dataset.tab===(a==='merch'?'merch':a==='music'?'music':'live')));
   if(a==='show' && SHOWS.find(s=>s.slug===b)) city(SHOWS.find(s=>s.slug===b));
@@ -275,6 +294,7 @@ function hub(){
 
 const mapImg = new Image(); mapImg.src = 'img/us-map.jpg';
 function pickState(st,e){
+  track('select_state',{state:st});
   const list=SHOWS.filter(s=>s.st===st);
   const dest = list.length>1 ? '#/state/'+st.toLowerCase() : '#/show/'+list[0].slug;
   if(CIRCLES||!window.gsap||reduce||!US){ location.hash=dest; return }
@@ -472,12 +492,14 @@ function bindVote(s){
       const i=picks.indexOf(b.dataset.t);
       if(i>-1){ picks.splice(i,1); paint(); return }
       const target=box.querySelectorAll('.slot')[picks.length]; picks.push(b.dataset.t);
+      track('song_pick',{city:s.slug,song:b.dataset.t,slot:picks.length});
       flyTo(b,target); paint();
       if(window.gsap) gsap.fromTo(target,{scale:.92},{scale:1,duration:.5,ease:'elastic.out(1,.5)',delay:.25});
     }
     if(sl && picks[+sl.dataset.i]){ picks.splice(+sl.dataset.i,1); paint() }
     if(e.target.closest('#vsub')){
       if(Date.now()>closesAt(s)) return;
+      track('setlist_submit',{city:s.slug,picks:picks.slice(0,5).join(' | '),includes_unreleased:picks.includes('UNRELEASED*')});
       const row = DB.add('votes',{ts:new Date().toISOString(),city:s.slug,device:deviceId(),picks:picks.slice(0,5),finale:''});
       box.innerHTML = resultsHtml(s,row,true);
       if(window.gsap){ gsap.from('.locked',{scale:1.3,opacity:0,rotate:-4,duration:.5,ease:'back.out(2)'}); gsap.from('.locked li',{x:-30,opacity:0,stagger:.08,delay:.2}) }
@@ -526,6 +548,7 @@ function shareImage(s,v){
       const file=new File([b],`big5-${s.slug}.png`,{type:'image/png'});
       const u=URL.createObjectURL(b); $('#vbox .share-wrap')?.remove();
       $('#vbox').insertAdjacentHTML('beforeend','<div class="share-wrap"></div>');
+      track('setlist_share_image',{city:s.slug,native_share:!!(navigator.canShare&&navigator.canShare({files:[file]}))});
       if(navigator.canShare&&navigator.canShare({files:[file]})) navigator.share({files:[file],title:'My BIG 5'}).catch(()=>{});
       $('#vbox .share-wrap').insertAdjacentHTML('beforeend',`<img class="share-img" src="${u}" alt="Your set list story image"><p class="body" style="text-align:center;color:var(--dim);margin-top:8px"><a href="${u}" download="big5-${s.slug}.png">Save image</a> · long-press to save on phone</p>`);
     });
@@ -551,6 +574,7 @@ function bindRequest(){
   f.onsubmit = e=>{
     e.preventDefault();
     const d = Object.fromEntries(new FormData(f));
+    track('city_request',{requested_city:d.city,requested_state:(d.state||'').toUpperCase()});
     const err = !d.city||!d.state ? 'Add your city and state.' :
       !/^\S+@\S+\.\S+$/.test(d.email) ? 'Add a valid email.' :
       d.optSms && !/\d{10}/.test(d.phone.replace(/\D/g,'')) ? 'Add a mobile number to get texts.' : '';
@@ -589,7 +613,7 @@ function bindMerch(s){
   const box=$('#mbox'); if(!box) return;
   const cd=$('.count',box); if(cd){ const tick=()=>{ if(!document.body.contains(cd)) return; let t=Math.max(0,cd.dataset.to-Date.now())/1e3;
     cd.textContent=`${Math.floor(t/86400)}D ${String(Math.floor(t%86400/3600)).padStart(2,'0')}H ${String(Math.floor(t%3600/60)).padStart(2,'0')}M ${String(Math.floor(t%60)).padStart(2,'0')}S`; setTimeout(tick,1000) }; tick() }
-  const ok=m=>{ DB.add('unlocks',{ts:new Date().toISOString(),city:s.slug,device:deviceId(),method:m}); $('#cmerch').innerHTML=merchBlock(s); bindMerch(s) };
+  const ok=m=>{ track('merch_unlock',{city:s.slug,method:m}); DB.add('unlocks',{ts:new Date().toISOString(),city:s.slug,device:deviceId(),method:m}); $('#cmerch').innerHTML=merchBlock(s); bindMerch(s) };
   const go=$('#mgo'); if(go) go.onclick=()=>{ const code=(CONFIG.merchCodes[s.slug]||'').toUpperCase(); $('#mcode').value.trim().toUpperCase()===code&&code ? ok('code') : $('#merr').textContent='That code does not match. Check the screens.' };
   const geo=$('#mgeo'); if(geo) geo.onclick=()=>{
     if(!navigator.geolocation){ $('#merr').textContent='Location is not available. Use the venue code.'; return }
