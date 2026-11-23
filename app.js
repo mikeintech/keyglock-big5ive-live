@@ -272,7 +272,7 @@ function hub(){
     b.onpointerenter=()=>{ stage.classList.add('aim'); torch.style.setProperty('--tx',b.style.left); torch.style.setProperty('--ty',b.style.top); b.classList.add('hot') };
     b.onpointerleave=()=>{ stage.classList.remove('aim'); b.classList.remove('hot') };
   });
-  app.querySelectorAll('.spot,.chip').forEach(b=>b.onclick=e=>pickState(b.dataset.st,e));
+  app.querySelectorAll('.spot,.chip').forEach(b=>{ b.onclick=e=>pickState(b.dataset.st,e); const warm=()=>{ const i=new Image(); i.src='img/cmap/dv-'+b.dataset.st+'.webp' }; b.addEventListener('pointerdown',warm,{once:true}); b.addEventListener('mouseenter',warm,{once:true}) });
   const cue=$('.scrollcue'); if(cue) cue.onclick=e=>{ e.preventDefault(); scrollToEl($('#dates'),-64) };
   if(!CONFIG.useEmbedForm) bindRequest();
   if(window.gsap){
@@ -303,7 +303,7 @@ function pickState(st,e){
   const label = list.length>1?STATES[st]:list[0].city;
   const w=document.createElement('div'); w.className='wipe';
   w.innerHTML=`<div class="tilt"><div class="cam" style="width:${US.w}px;height:${US.h}px">
-      <img src="img/us-map.jpg" alt="">${(c=>c?`<img class="hi" src="img/cmap/st-${st}.jpg" alt="" style="left:${c[0]}px;top:${c[1]}px;width:${c[2]}px;height:${c[3]}px">`:'')(US.crops&&US.crops['st-'+st])}
+      <img src="img/us-map.jpg" alt="">${(c=>c?`<img class="hi" src="img/cmap/st-${st}.webp" alt="" style="left:${c[0]}px;top:${c[1]}px;width:${c[2]}px;height:${c[3]}px">`:'')(US.crops&&US.crops['st-'+st])}${(c=>c?`<img class="hi dv" src="img/cmap/dv-${st}.webp" alt="" style="left:${c[0]}px;top:${c[1]}px;width:${c[2]}px;height:${c[3]}px">`:'')(US.crops&&US.crops['dv-'+st])}
       <svg viewBox="0 0 ${US.w} ${US.h}" class="borders">${Object.entries(US.states).map(([k,d])=>`<path class="${k===st?'on':''}" d="${d}"/>`).join('')}
         ${list.map(s=>`<circle class="cpin" cx="${US.cities[s.slug][0]}" cy="${US.cities[s.slug][1]}" r="9"/>`).join('')}</svg>
     </div></div>
@@ -322,10 +322,12 @@ function pickState(st,e){
   const tgt=list.map(x=>US.cities[x.slug]); const tx=tgt.reduce((a,p)=>a+p[0],0)/tgt.length, ty=tgt.reduce((a,p)=>a+p[1],0)/tgt.length;
   const dive={s:zs.s*4,x:W/2-tx*zs.s*4,y:H/2-ty*zs.s*4};
   const fx0=(-us.x+W/2)/us.s, fy0=(-us.y+H/2)/us.s;           // map point at screen centre, US view
+  const hiSt=[...w.querySelectorAll('.cam img.hi:not(.dv)')], hiDv=[...w.querySelectorAll('.cam img.dv')]; [...hiSt,...hiDv].forEach(i=>i.style.opacity=0);
   const p={t:0}, ls0=Math.log(us.s), ls1=Math.log(dive.s);
   const zoom=()=>{ const t=p.t, c=gsap.parseEase('power3.out')(Math.min(1,t*1.5));
     v.s=Math.exp(ls0+(ls1-ls0)*t); const fx=fx0+(tx-fx0)*c, fy=fy0+(ty-fy0)*c;
-    v.x=W/2-fx*v.s; v.y=H/2-fy*v.s; apply() };
+    v.x=W/2-fx*v.s; v.y=H/2-fy*v.s; apply();
+    hiSt.forEach(i=>i.style.opacity=Math.min(1,Math.max(0,(t-.12)/.3))); hiDv.forEach(i=>i.style.opacity=Math.min(1,Math.max(0,(t-.4)/.3))) };
   const tl=gsap.timeline();
   if(spot){ spot.classList.add('hot'); tl.to(spot,{scale:1.5,duration:.15,ease:'power2.out'},0) }
   tl.fromTo(w,{'--r':'20px'},{'--r':Math.hypot(W,H)+'px',duration:.3,ease:'power2.in'},0)
@@ -655,7 +657,7 @@ function admin(){
   $('#er').onclick=()=>dl('big5-city-requests.csv',csv(r));
 }
 
-fetch('img/us-states.json').then(r=>r.json()).then(j=>{ US=j; setTimeout(()=>['AZ','CO','TX','GA','DC'].forEach(k=>{ const i=new Image(); i.src='img/cmap/st-'+k+'.jpg' }),1500) }).catch(()=>{}).finally(route);
+fetch('img/us-states.json?v=74').then(r=>r.json()).then(j=>{ US=j; setTimeout(()=>['AZ','CO','TX','GA','DC'].forEach(k=>{ const i=new Image(); i.decoding='async'; i.src='img/cmap/st-'+k+'.webp' }),1500) }).catch(()=>{}).finally(route);
 
 // late content (Seated widget, embeds, fonts) changes page height: re-measure scroll positions
 if(window.ResizeObserver&&window.ScrollTrigger){ let rt; new ResizeObserver(()=>{ clearTimeout(rt); rt=setTimeout(()=>ScrollTrigger.refresh(),200) }).observe(document.getElementById('app')) }

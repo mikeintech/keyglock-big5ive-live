@@ -415,3 +415,11 @@ h2.disp + p,h2.disp + .body,h2.disp + .form,h2.disp + .kick{margin-top:16px}
 
 /* mobile: no empty space under the date list */
 @media (max-width:759px){#dates{min-height:0;padding-bottom:24px}}
+
+/* map dive: keep the camera layer un-promoted so it is re-drawn sharp at every zoom step */
+.tilt .cam{backface-visibility:visible!important;-webkit-backface-visibility:visible!important}
+/* close-up satellite layer for the dive, feathered so its edges never show */
+.cam img.dv{-webkit-mask-image:radial-gradient(closest-side,#000 70%,transparent);mask-image:radial-gradient(closest-side,#000 70%,transparent)}
+/* feather the sharper state layer into the base map */
+.cam img.hi:not(.dv){-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent),linear-gradient(180deg,transparent,#000 14%,#000 86%,transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent),linear-gradient(180deg,transparent,#000 14%,#000 86%,transparent);mask-composite:intersect}
+.cam img.hi{filter:brightness(.82) contrast(.92)}
