@@ -272,7 +272,7 @@ function hub(){
     b.onpointerenter=()=>{ stage.classList.add('aim'); torch.style.setProperty('--tx',b.style.left); torch.style.setProperty('--ty',b.style.top); b.classList.add('hot') };
     b.onpointerleave=()=>{ stage.classList.remove('aim'); b.classList.remove('hot') };
   });
-  app.querySelectorAll('.spot,.chip').forEach(b=>{ b.onclick=e=>pickState(b.dataset.st,e); const warm=()=>{ const i=new Image(); i.src='img/cmap/dv-'+b.dataset.st+'.webp' }; b.addEventListener('pointerdown',warm,{once:true}); b.addEventListener('mouseenter',warm,{once:true}) });
+  app.querySelectorAll('.spot,.chip').forEach(b=>{ b.onclick=e=>pickState(b.dataset.st,e); const warm=()=>diveImg('img/cmap/dv-'+b.dataset.st+'.webp'); b.addEventListener('pointerdown',warm,{once:true}); b.addEventListener('mouseenter',warm,{once:true}) });
   const cue=$('.scrollcue'); if(cue) cue.onclick=e=>{ e.preventDefault(); scrollToEl($('#dates'),-64) };
   if(!CONFIG.useEmbedForm) bindRequest();
   if(window.gsap){
@@ -293,6 +293,9 @@ function hub(){
 // US relief map (NASA Blue Marble, tinted) + state borders in the same pixel space
 
 const mapImg = new Image(); mapImg.src = 'img/us-map.jpg';
+// decoded image cache for the map dive (decode once, ahead of time, so the first frame never stalls)
+const MAPIMG={};
+function diveImg(src){ let i=MAPIMG[src]; if(!i){ i=MAPIMG[src]=new Image(); i.decoding='async'; i.src=src; (i.decode?i.decode():new Promise(r=>i.onload=r)).then(()=>i._ready=true).catch(()=>{}) } return i }
 function pickState(st,e){
   track('select_state',{state:st});
   const list=SHOWS.filter(s=>s.st===st);
@@ -300,46 +303,63 @@ function pickState(st,e){
   if(CIRCLES||!window.gsap||reduce||!US){ location.hash=dest; return }
   const spot=$(`.spot[data-st="${st}"]`); const r=(spot||e.currentTarget).getBoundingClientRect();
   const cx=r.left+r.width/2, cy=r.top+r.height/2;
-  const label = list.length>1?STATES[st]:list[0].city;
+  const W=innerWidth, H=innerHeight;
+  // Map photos are plain <img> layers the GPU slides and scales (no repaint, full source resolution).
+  // Only the thin vector lines are redrawn each frame, at screen resolution, so they stay sharp.
+  const layers=[['base','img/us-map.jpg',[0,0,US.w,US.h]]];
+  const cSt=US.crops&&US.crops['st-'+st], cDv=US.crops&&US.crops['dv-'+st];
+  if(cSt) layers.push(['st','img/cmap/st-'+st+'.webp',cSt]);
+  if(cDv) layers.push(['dv','img/cmap/dv-'+st+'.webp',cDv]);
+  const pinsXY=list.map(s=>US.cities[s.slug]);
+  const d0=US.states[st];
   const w=document.createElement('div'); w.className='wipe';
-  w.innerHTML=`<div class="tilt"><div class="cam" style="width:${US.w}px;height:${US.h}px">
-      <img src="img/us-map.jpg" alt="">${(c=>c?`<img class="hi" src="img/cmap/st-${st}.webp" alt="" style="left:${c[0]}px;top:${c[1]}px;width:${c[2]}px;height:${c[3]}px">`:'')(US.crops&&US.crops['st-'+st])}${(c=>c?`<img class="hi dv" src="img/cmap/dv-${st}.webp" alt="" style="left:${c[0]}px;top:${c[1]}px;width:${c[2]}px;height:${c[3]}px">`:'')(US.crops&&US.crops['dv-'+st])}
-      <svg viewBox="0 0 ${US.w} ${US.h}" class="borders">${Object.entries(US.states).map(([k,d])=>`<path class="${k===st?'on':''}" d="${d}"/>`).join('')}
-        ${list.map(s=>`<circle class="cpin" cx="${US.cities[s.slug][0]}" cy="${US.cities[s.slug][1]}" r="9"/>`).join('')}</svg>
-    </div></div>
-    <div class="maplabel disp">${STATES[st]}</div>
-`;
+  w.innerHTML=`<div class="tilt">${layers.map(([k,src,c])=>`<img class="mlayer ml-${k}" src="${src}" alt="" decoding="async" style="width:${c[2]}px;height:${c[3]}px">`).join('')}
+    <svg class="mvec" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+      <path class="others" d="${Object.entries(US.states).filter(([k])=>k!==st).map(([,d])=>d).join('')}"/>
+      <path class="on-fill" d="${d0}"/>
+      <path class="on g1" d="${d0}"/><path class="on g2" d="${d0}"/>
+      <path class="on g3" d="${d0}"/><path class="on g4" d="${d0}"/>
+      ${pinsXY.map(([x,y])=>`<circle class="pin-glow" cx="${x}" cy="${y}" r="0"/><circle class="cpin" cx="${x}" cy="${y}" r="0"/>`).join('')}
+    </svg></div>
+    <div class="maplabel disp">${STATES[st]}</div>`;
   w.style.setProperty('--cx',cx+'px'); w.style.setProperty('--cy',cy+'px');
   document.body.appendChild(w);
-  // camera: fit whole US, then fit the state's box
-  const cam=$('.cam',w), path=$('.borders .on',w), bb=path.getBBox(), W=innerWidth, H=innerHeight;
+  const svg=$('.mvec',w), bb=$('.on-fill',w).getBBox(), L=$('.on-fill',w).getTotalLength();
+  const imgs=layers.map(([k,,c])=>({el:$('.ml-'+k,w),c,k}));
+  const ons=$$('.on',w), pinEls=$$('.cpin',w), glowEls=$$('.pin-glow',w);
   const fit=(x,y,bw,bh,pad)=>{ const sc=Math.min(W/(bw*pad),H/(bh*pad)); return {s:sc,x:W/2-(x+bw/2)*sc,y:H/2-(y+bh/2)*sc} };
   const us=(()=>{ const f=fit(0,US.h*.05,US.w,US.h*.85,1.02), cs=Math.max(W/US.w,H/(US.h*.85))*1.15; if(cs<=f.s*1.05) return f; return {s:cs,x:W/2-(bb.x+bb.width/2)*cs*.4-(US.w/2)*cs*.6,y:H/2-(US.h*.5)*cs} })(), zs=fit(bb.x,bb.y,bb.width,bb.height,st==='DC'?14:1.7);
-  const v={...us}; const apply=()=>cam.style.transform=`translate(${v.x}px,${v.y}px) scale(${v.s})`; apply();
-  const len=path.getTotalLength(); path.style.strokeDasharray=len; path.style.strokeDashoffset=len;
+  const v={...us}, p={t:0}, dash={o:1}, pk=pinsXY.map(()=>({k:0}));
+  const draw=()=>{
+    const s=v.s, t=p.t;
+    imgs.forEach(({el,c,k})=>{ el.style.transform=`translate3d(${v.x+c[0]*s}px,${v.y+c[1]*s}px,0) scale(${s})`;
+      if(k==='st') el.style.opacity=Math.min(1,Math.max(0,(t-.12)/.3));
+      if(k==='dv') el.style.opacity=Math.min(1,Math.max(0,(t-.4)/.3)) });
+    svg.setAttribute('viewBox',`${-v.x/s} ${-v.y/s} ${W/s} ${H/s}`);
+    const sl=L*s; ons.forEach(el=>{ el.style.strokeDasharray=sl+' '+sl; el.style.strokeDashoffset=dash.o*sl });  // non-scaling stroke: dash in screen px
+    pk.forEach((q,i)=>{ pinEls[i].setAttribute('r',9*q.k); glowEls[i].setAttribute('r',q.k?9*q.k+6/s:0) });
+  };
+  draw();
   const lab=$('.maplabel',w);
   // one fast move: US -> state glows -> dive into the city pin -> page is already there, settling in
-  const tgt=list.map(x=>US.cities[x.slug]); const tx=tgt.reduce((a,p)=>a+p[0],0)/tgt.length, ty=tgt.reduce((a,p)=>a+p[1],0)/tgt.length;
-  const dive={s:zs.s*4,x:W/2-tx*zs.s*4,y:H/2-ty*zs.s*4};
+  const tx=pinsXY.reduce((a,q)=>a+q[0],0)/pinsXY.length, ty=pinsXY.reduce((a,q)=>a+q[1],0)/pinsXY.length;
+  const ls0=Math.log(us.s), ls1=Math.log(zs.s*4), pe=gsap.parseEase('power3.out');
   const fx0=(-us.x+W/2)/us.s, fy0=(-us.y+H/2)/us.s;           // map point at screen centre, US view
-  const hiSt=[...w.querySelectorAll('.cam img.hi:not(.dv)')], hiDv=[...w.querySelectorAll('.cam img.dv')]; [...hiSt,...hiDv].forEach(i=>i.style.opacity=0);
-  const p={t:0}, ls0=Math.log(us.s), ls1=Math.log(dive.s);
-  const zoom=()=>{ const t=p.t, c=gsap.parseEase('power3.out')(Math.min(1,t*1.5));
+  const zoom=()=>{ const t=p.t, c=pe(Math.min(1,t*1.5));
     v.s=Math.exp(ls0+(ls1-ls0)*t); const fx=fx0+(tx-fx0)*c, fy=fy0+(ty-fy0)*c;
-    v.x=W/2-fx*v.s; v.y=H/2-fy*v.s; apply();
-    hiSt.forEach(i=>i.style.opacity=Math.min(1,Math.max(0,(t-.12)/.3))); hiDv.forEach(i=>i.style.opacity=Math.min(1,Math.max(0,(t-.4)/.3))) };
-  const tl=gsap.timeline();
+    v.x=W/2-fx*v.s; v.y=H/2-fy*v.s };
+  const tl=gsap.timeline({onUpdate:draw});
   if(spot){ spot.classList.add('hot'); tl.to(spot,{scale:1.5,duration:.15,ease:'power2.out'},0) }
   tl.fromTo(w,{'--r':'20px'},{'--r':Math.hypot(W,H)+'px',duration:.3,ease:'power2.in'},0)
     .to(p,{t:1,duration:1.25,ease:'power1.in',onUpdate:zoom},.12)
     .fromTo($('.tilt',w),{rotateX:28,rotateZ:-3},{rotateX:48,rotateZ:0,duration:1.25,ease:'power1.in'},.12)
-    .to(path,{strokeDashoffset:0,duration:.45,ease:'power2.out'},.2)
+    .to(dash,{o:0,duration:.45,ease:'power2.out'},.2)
     .fromTo(lab,{opacity:0,scale:.8,rotate:-12},{opacity:1,scale:1,rotate:-8,duration:.3,ease:'back.out(2)'},.35)
-    .from($$('.cpin',w),{scale:0,transformOrigin:'50% 50%',stagger:.05,duration:.22,ease:'back.out(3)'},.55)
+    .to(pk,{k:1,stagger:.05,duration:.22,ease:'back.out(3)'},.55)
     .to(lab,{opacity:0,scale:1.8,duration:.35,ease:'power2.in'},.85)
     .call(()=>{ skipCurtain=true; location.hash=dest },null,1.3)
     .to(w,{opacity:0,duration:.3,ease:'power1.out',onComplete:()=>w.remove()},1.34)
-    .call(()=>gsap.fromTo('#app',{scale:1.15,filter:'blur(5px)'},{scale:1,filter:'blur(0px)',duration:.5,ease:'power3.out',clearProps:'transform,filter',transformOrigin:'50% 30%'}),null,1.32);
+    .call(()=>gsap.fromTo('#app',{scale:1.08,opacity:.4},{scale:1,opacity:1,duration:.45,ease:'power3.out',clearProps:'transform,opacity',transformOrigin:'50% 30%'}),null,1.32);
 }
 
 /* ---------- state chapter (multi-date states) ---------- */
@@ -657,7 +677,7 @@ function admin(){
   $('#er').onclick=()=>dl('big5-city-requests.csv',csv(r));
 }
 
-fetch('img/us-states.json?v=74').then(r=>r.json()).then(j=>{ US=j; setTimeout(()=>['AZ','CO','TX','GA','DC'].forEach(k=>{ const i=new Image(); i.decoding='async'; i.src='img/cmap/st-'+k+'.webp' }),1500) }).catch(()=>{}).finally(route);
+fetch('img/us-states.json?v=74').then(r=>r.json()).then(j=>{ US=j; setTimeout(()=>(diveImg('img/us-map.jpg'),['AZ','CO','TX','GA','DC'].forEach(k=>diveImg('img/cmap/st-'+k+'.webp'))),1500) }).catch(()=>{}).finally(route);
 
 // late content (Seated widget, embeds, fonts) changes page height: re-measure scroll positions
 if(window.ResizeObserver&&window.ScrollTrigger){ let rt; new ResizeObserver(()=>{ clearTimeout(rt); rt=setTimeout(()=>ScrollTrigger.refresh(),200) }).observe(document.getElementById('app')) }

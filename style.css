@@ -423,3 +423,16 @@ h2.disp + p,h2.disp + .body,h2.disp + .form,h2.disp + .kick{margin-top:16px}
 /* feather the sharper state layer into the base map */
 .cam img.hi:not(.dv){-webkit-mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent),linear-gradient(180deg,transparent,#000 14%,#000 86%,transparent);-webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent,#000 14%,#000 86%,transparent),linear-gradient(180deg,transparent,#000 14%,#000 86%,transparent);mask-composite:intersect}
 .cam img.hi{filter:brightness(.82) contrast(.92)}
+/* canvas map dive */
+.mapcv{position:absolute;left:0;top:0;width:100%;height:100%;display:block}
+.mapmeasure{position:absolute;width:1px;height:1px;left:-9px;top:-9px;visibility:hidden}
+/* map dive v2: GPU image layers + screen-res vector overlay */
+.wipe .tilt .mlayer{position:absolute;left:0;top:0;max-width:none;transform-origin:0 0;will-change:transform,opacity;pointer-events:none}
+.mvec{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible}
+.mvec path,.mvec circle{vector-effect:non-scaling-stroke;fill:none}
+.mvec .others{stroke:rgba(255,106,90,.33);stroke-width:1}
+.mvec .on-fill{fill:rgba(255,42,42,.15)}
+.mvec .on{stroke-linejoin:round}
+.mvec .g1{stroke:rgba(255,42,42,.10);stroke-width:16}.mvec .g2{stroke:rgba(255,60,50,.22);stroke-width:8}
+.mvec .g3{stroke:rgba(255,255,255,.35);stroke-width:4.5}.mvec .g4{stroke:#ffe1da;stroke-width:2.5}
+.mvec .cpin{fill:#fff;stroke:#ff2a2a;stroke-width:3}.mvec .pin-glow{fill:rgba(255,255,255,.18)}
