@@ -412,6 +412,6 @@ h2.disp + p,h2.disp + .body,h2.disp + .form,h2.disp + .kick{margin-top:16px}
 .tee-flip{display:none}
 .tee .tee-in{filter:blur(5px) brightness(.7) saturate(.7)}
 .tee-card .tee::before{font-size:14px;padding:0 10%}
-/* hide the design completely: no prints, heavy blur */
-.tee .print{display:none!important}
-.tee .tee-in{filter:blur(22px) brightness(.45) saturate(0)}
+
+/* mobile: no empty space under the date list */
+@media (max-width:759px){#dates{min-height:0;padding-bottom:24px}}
