@@ -174,7 +174,7 @@ body::after{content:"";position:fixed;inset:-50%;z-index:90;pointer-events:none;
 .slot.fin .sn svg{width:26px;height:26px;fill:var(--red);stroke:none}
 .slot.fin.full{background:linear-gradient(90deg,#e3202a,#6a0610);border-color:var(--red)}
 .slot.fin .st{font-size:22px}
-.crate{display:grid;grid-template-columns:1fr;gap:6px;max-height:360px;overflow:auto;padding-right:2px}
+.crate{display:grid;grid-template-columns:1fr;gap:6px;max-height:none;overflow:visible;padding-right:2px}
 .song{display:grid;grid-template-columns:28px 1fr 28px;align-items:center;gap:10px;text-align:left;background:#0b0b0b;border:1px solid var(--line);border-radius:6px;padding:11px 12px;font-size:19px;cursor:pointer;transition:transform .15s,border-color .2s}
 .song:hover{border-color:#ffffff50;transform:translateX(3px)}
 .song .play{width:24px;height:24px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;font-size:9px;color:var(--dim)}
