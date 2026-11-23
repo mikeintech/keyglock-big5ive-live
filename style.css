@@ -405,3 +405,13 @@ h2.disp + p,h2.disp + .body,h2.disp + .form,h2.disp + .kick{margin-top:16px}
 .song.special{border-color:#e3202a88;background:linear-gradient(90deg,#2a0508,#0b0b0b)}
 .song.special .play{color:var(--red);border-color:var(--red);font-size:11px}
 .song.special small{display:block;font-family:-apple-system,system-ui,sans-serif;font-size:11px;letter-spacing:0;color:var(--dim);margin-top:2px}
+
+/* shirts: blurred teaser, only at the show */
+.tee .tee-in{filter:blur(7px) brightness(.55) saturate(.6);pointer-events:none}
+.tee::before{content:"Only available at the show";position:absolute;inset:0;z-index:3;display:grid;place-items:center;text-align:center;padding:0 18%;font-family:inherit;font-size:clamp(18px,4.6vw,30px);letter-spacing:.12em;text-transform:uppercase;color:#fff;text-shadow:0 2px 14px #000;pointer-events:none}
+.tee-flip{display:none}
+.tee .tee-in{filter:blur(5px) brightness(.7) saturate(.7)}
+.tee-card .tee::before{font-size:14px;padding:0 10%}
+/* hide the design completely: no prints, heavy blur */
+.tee .print{display:none!important}
+.tee .tee-in{filter:blur(22px) brightness(.45) saturate(0)}

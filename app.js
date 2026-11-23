@@ -606,7 +606,7 @@ function dist(a,b,c,d){ const R=6371e3,r=Math.PI/180,x=Math.sin((c-a)*r/2)**2+Ma
 function merchPage(){
   app.innerHTML = `<div class="city-hero"><div class="wrap"><p class="kick">BIG 5IVE LIVE</p><h1 class="disp">Merch</h1>
     <p class="body" style="color:var(--dim);margin-top:10px">Exclusively in venue. Every city gets its own tee, sold only in the building on show night. Tap a tee to see that city's drop.</p></div></div>
-  <div class="wrap"><div class="tee-grid">${SHOWS.map(s=>`<div class="tee-card">${teeHtml(s.slug)}<a href="#/show/${s.slug}#cmerch"><span class="d">${mmdd(s.date)}</span><b class="disp">${s.city}</b><small>${esc(s.venue)} · Locked</small></a></div>`).join('')}</div></div>`;
+  <div class="wrap"><div class="tee-grid">${SHOWS.map(s=>`<div class="tee-card">${teeHtml(s.slug)}<a href="#/show/${s.slug}#cmerch"><span class="d">${mmdd(s.date)}</span><b class="disp">${s.city}</b><small>${esc(s.venue)} · At the show only</small></a></div>`).join('')}</div></div>`;
   bindTees(app);
 }
 function music(){
