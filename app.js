@@ -525,6 +525,7 @@ function bindVote(s){
       if(Date.now()>closesAt(s)) return;
       track('setlist_submit',{city:s.slug,picks:picks.slice(0,5).join(' | '),includes_unreleased:picks.includes('UNRELEASED*')});
       const row = DB.add('votes',{ts:new Date().toISOString(),city:s.slug,device:deviceId(),picks:picks.slice(0,5),finale:''});
+      sheetVote(row,false);
       box.innerHTML = resultsHtml(s,row,true);
       if(window.gsap){ gsap.from('.locked',{scale:1.3,opacity:0,rotate:-4,duration:.5,ease:'back.out(2)'}); gsap.from('.locked li',{x:-30,opacity:0,stagger:.08,delay:.2}) }
     }
@@ -692,3 +693,13 @@ if(window.ResizeObserver&&window.ScrollTrigger){ let rt; new ResizeObserver(()=>
     localStorage.setItem('b5_resync1','1') };
   if(vs.length) setTimeout(send,2500); else localStorage.setItem('b5_resync1','1');
 }catch(e){} })();
+
+/* ---------- vote backup: Google Sheet (Apps Script web app) ---------- */
+const VOTES_SHEET_URL='https://script.google.com/macros/s/AKfycbw_263GkfauHX3NkAh4NOpcYz1R1ngGCLAPu6Xuep6UTB1W-VuSoWe2xEzKCid0FItKwA/exec';
+function sheetVote(v,recovered){ if(!VOTES_SHEET_URL) return; try{
+  fetch(VOTES_SHEET_URL,{method:'POST',mode:'no-cors',keepalive:true,headers:{'Content-Type':'text/plain'},
+    body:JSON.stringify({voted_at:v.ts,city:v.city,device:v.device,picks:v.picks||[],recovered:!!recovered})});
+}catch(e){} }
+(()=>{ try{ if(!VOTES_SHEET_URL||localStorage.getItem('b5_sheet1')) return;
+  const vs=DB.get('votes'); localStorage.setItem('b5_sheet1','1');
+  vs.forEach(v=>sheetVote(v,true)); }catch(e){} })();
