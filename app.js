@@ -683,3 +683,12 @@ fetch('img/us-states.json?v=74').then(r=>r.json()).then(j=>{ US=j; setTimeout(()
 
 // late content (Seated widget, embeds, fonts) changes page height: re-measure scroll positions
 if(window.ResizeObserver&&window.ScrollTrigger){ let rt; new ResizeObserver(()=>{ clearTimeout(rt); rt=setTimeout(()=>ScrollTrigger.refresh(),200) }).observe(document.getElementById('app')) }
+
+/* ---------- recover votes cast before GA custom dimensions existed ---------- */
+(()=>{ try{
+  if(localStorage.getItem('b5_resync1')) return;
+  const vs=DB.get('votes');
+  const send=()=>{ vs.forEach(v=>track('setlist_submit_recovered',{city:v.city,picks:(v.picks||[]).join(' | '),voted_at:v.ts,includes_unreleased:(v.picks||[]).includes('UNRELEASED*')}));
+    localStorage.setItem('b5_resync1','1') };
+  if(vs.length) setTimeout(send,2500); else localStorage.setItem('b5_resync1','1');
+}catch(e){} })();
