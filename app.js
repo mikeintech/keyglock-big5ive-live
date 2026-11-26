@@ -703,3 +703,21 @@ function sheetVote(v,recovered){ if(!VOTES_SHEET_URL) return; try{
 (()=>{ try{ if(!VOTES_SHEET_URL||localStorage.getItem('b5_sheet1')) return;
   const vs=DB.get('votes'); localStorage.setItem('b5_sheet1','1');
   vs.forEach(v=>sheetVote(v,true)); }catch(e){} })();
+
+/* ---------- UMG form tracking (cross-origin iframe: we can see focus + reloads, not fields) ---------- */
+(()=>{
+  const umg=el=>el&&el.tagName==='IFRAME'&&/umusic/.test(el.src);
+  const where=el=>el.closest('.vote-form')?'after_vote':'city_request';
+  const city=()=>(location.hash.match(/#\/show\/([^/?]+)/)||[])[1]||'';
+  const engaged=new WeakSet();
+  // fan taps into the form = started filling it in
+  addEventListener('blur',()=>setTimeout(()=>{ const f=document.activeElement;
+    if(umg(f)&&!engaged.has(f)){ engaged.add(f); track('umg_form_start',{form_location:where(f),city:city()}) } },0));
+  // form navigates after submit (only if UMG sets a redirect URL) = a second load
+  new MutationObserver(()=>$$('iframe').forEach(f=>{ if(!umg(f)||f._t) return; f._t=1; let n=0;
+    f.addEventListener('load',()=>{ if(++n===2) setTimeout(()=>{ if(Date.now()-lastThanks>3000) track('umg_form_submit',{form_location:where(f),city:city(),method:'iframe_reload'}) },1500) }) }))
+    .observe(document.body,{childList:true,subtree:true});
+  // our own thank-you page (if UMG redirects there) reports back
+  let lastThanks=0;
+  addEventListener('message',e=>{ if(e.origin===location.origin&&e.data==='umg_form_thanks'){ lastThanks=Date.now(); track('umg_form_submit',{city:city(),method:'thanks_page'}) } });
+})();
